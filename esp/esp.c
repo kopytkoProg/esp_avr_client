@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "uart/uart.h"
+#include "commands.h"
 
 // will be code to reasembly msg from uart
 #define BUFFER_SIZE  	100
@@ -27,8 +29,25 @@ uint8_t find_first(char s[], uint8_t length, uint8_t c) {
 	return (uint8_t) (r & 0xff);
 }
 
+/**
+ * send debug msg to las connected master
+ */
+void esp_debug(char *s) {
+	char b[101];
+	sprintf(b, "<%u, %u>{"HEADER_DEBUG"|%s}", id, strlen(s) + strlen(HEADER_DEBUG) + 3, s);
+
+	send(b);
+}
+
 char esp_isMsgToExe(void) {
 	return esp_state == waiting_for_executoion;
+}
+
+/**
+ * call after msg executed
+ */
+void esp_done(void) {
+	esp_state = waiting_for_cmd;
 }
 
 /**
@@ -46,18 +65,11 @@ void esp_getMsg_done(char *b) {
 	esp_done();
 }
 
-/**
- * call after msg executed
- */
-void esp_done(void) {
-	esp_state = waiting_for_cmd;
-}
-
 void onChar(char c) {
 
-	char b[50];
-	sprintf(b, "%c", c);
-	send(b);
+//	char b[50];
+//	sprintf(b, "%c", c);
+//	send(b);
 
 	switch (esp_state) {
 	case waiting_for_cmd:
@@ -92,11 +104,15 @@ void onChar(char c) {
 			id = atoi(buffer + 1);
 			size = atoi((char *) (buffer + 1 + find_first(buffer, p, ',')));
 
-			esp_state = receiving_data;
+			if (size == 0) {
+				esp_state = waiting_for_executoion;
+			} else {
+				esp_state = receiving_data;
+			}
 
 			buffer[p] = 0;
-
 			p = 0;
+
 		}
 
 		break;
