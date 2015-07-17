@@ -252,6 +252,7 @@ uint8_t ow_rom_search( uint8_t diff, uint8_t *id )
 }
 
 
+
 static void ow_command_intern( uint8_t command, uint8_t *id, uint8_t with_parasite_enable )
 {
 	uint8_t i;

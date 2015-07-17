@@ -34,7 +34,7 @@ uint8_t find_first(char s[], uint8_t length, uint8_t c) {
  */
 void esp_debug(char *s) {
 	char b[101];
-	sprintf(b, "<%u, %u>{"HEADER_DEBUG"|%s}", id, strlen(s) + strlen(HEADER_DEBUG) + 3, s);
+	sprintf(b, "<%u, %u>{"HEADER_DEBUG"|%s}\r\n", id, strlen(s) + strlen(HEADER_DEBUG) + 3, s);
 
 	send(b);
 }

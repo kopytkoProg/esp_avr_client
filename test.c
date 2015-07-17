@@ -27,15 +27,15 @@ static void send_temp(void) {
 
 		ow_reset();
 
-		while (dnum != OW_LAST_DEVICE && nfound < NUM_SENSORS) {
-			DS18X20_find_sensor(&dnum, &sensor_id[nfound][0]);
-			if (dnum == OW_PRESENCE_ERR || dnum == OW_DATA_ERR) {
-				break;
-			}
+
+
+		while (dnum != OW_LAST_DEVICE ) {
+			if(nfound) memcpy(sensor_id[nfound], sensor_id[nfound-1], OW_ROMCODE_SIZE);
+			dnum = ow_rom_search(dnum, sensor_id[nfound]);
 
 			sprintf(b, "Found: "MACSTR", dnum: %u", MAC2STR(sensor_id[nfound]), dnum);
 			esp_debug(b);
-
+			_delay_ms(1000);
 
 			nfound++;
 		}
@@ -56,7 +56,7 @@ static void send_temp(void) {
 	}
 
 	sprintf(b, "t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
-	// esp_debug(b);
+	esp_debug(b);
 
 	DS18X20_start_meas( DS18X20_POWER_EXTERN, NULL);
 

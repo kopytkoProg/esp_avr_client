@@ -72,6 +72,8 @@ extern uint8_t ow_byte_wr( uint8_t b );
 extern uint8_t ow_byte_rd( void );
 
 extern uint8_t ow_rom_search( uint8_t diff, uint8_t *id );
+extern uint8_t ow_rom_search_my( uint8_t diff, uint8_t *id );
+
 
 extern void ow_command( uint8_t command, uint8_t *id );
 extern void ow_command_with_parasite_enable( uint8_t command, uint8_t *id );
