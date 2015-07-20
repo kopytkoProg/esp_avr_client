@@ -9,7 +9,8 @@
 
 #include "uart.h"
 
-char usart_bufor[100 + 1];
+
+char usart_bufor[UART_SEND_BUFFER_SIZE + 1];
 uint8_t usart_bufor_ind = 0;
 
 enum enum_state {
@@ -63,7 +64,7 @@ void send(char *string) {
 	state = sending;
 	usart_bufor_ind = 0;						// copy data to buffer
 	strcpy(usart_bufor, string);
-
+	strcat(usart_bufor, "\r\n");
 	UCSR0B |= (1 << UDRIE0); 					// enable empty buffer interrupt
 
 }

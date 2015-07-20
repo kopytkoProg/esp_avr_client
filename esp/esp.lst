@@ -1,0 +1,1077 @@
+   1               		.file	"esp.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	find_first
+  12               	find_first:
+  13               	.LFB1:
+  14               		.file 1 "esp/esp.c"
+   1:esp/esp.c     **** #include <stdio.h>
+   2:esp/esp.c     **** #include <stdlib.h>
+   3:esp/esp.c     **** #include <string.h>
+   4:esp/esp.c     **** #include "uart/uart.h"
+   5:esp/esp.c     **** #include "commands.h"
+   6:esp/esp.c     **** #include "esp.h"
+   7:esp/esp.c     **** 
+   8:esp/esp.c     **** // will be code to reasembly msg from uart
+   9:esp/esp.c     **** 
+  10:esp/esp.c     **** #define ASYNC_MSG_HEADER_BUFFER 		10
+  11:esp/esp.c     **** 
+  12:esp/esp.c     **** char buffer[ESP_RECEIVE_BUFFER_SIZE + 1];
+  13:esp/esp.c     **** static uint8_t p = 0;
+  14:esp/esp.c     **** static uint8_t id = 0;
+  15:esp/esp.c     **** static uint8_t size = 0;
+  16:esp/esp.c     **** 
+  17:esp/esp.c     **** enum enum_esp_state {
+  18:esp/esp.c     **** 	waiting_for_cmd, receiving_data, reciving_unknown_length_data, reciving_header, waiting_for_execut
+  19:esp/esp.c     **** };
+  20:esp/esp.c     **** 
+  21:esp/esp.c     **** static enum enum_esp_state volatile esp_state = waiting_for_cmd;
+  22:esp/esp.c     **** 
+  23:esp/esp.c     **** uint8_t find_first(char s[], uint8_t length, uint8_t c) {
+  15               		.loc 1 23 0
+  16               		.cfi_startproc
+  17               	.LVL0:
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  24:esp/esp.c     **** 
+  25:esp/esp.c     **** 	int16_t r = -1;
+  26:esp/esp.c     **** 	int16_t i = 0;
+  27:esp/esp.c     **** 
+  28:esp/esp.c     **** 	for (i = 0; r == -1 && i < length; i++) {
+  22               		.loc 1 28 0
+  23 0000 E0E0      		ldi r30,0
+  24 0002 F0E0      		ldi r31,0
+  25 0004 70E0      		ldi r23,0
+  26               	.LVL1:
+  27               	.L2:
+  28               		.loc 1 28 0 is_stmt 0 discriminator 2
+  29 0006 E617      		cp r30,r22
+  30 0008 F707      		cpc r31,r23
+  31 000a 04F4      		brge .L8
+  29:esp/esp.c     **** 		if (s[i] == c) r = i;
+  32               		.loc 1 29 0 is_stmt 1
+  33 000c DC01      		movw r26,r24
+  34 000e 2D91      		ld r18,X+
+  35 0010 CD01      		movw r24,r26
+  36 0012 2417      		cp r18,r20
+  37 0014 01F0      		breq .L6
+  38 0016 2FEF      		ldi r18,lo8(-1)
+  39 0018 3FEF      		ldi r19,lo8(-1)
+  40 001a 00C0      		rjmp .L3
+  41               	.L6:
+  42 001c 9F01      		movw r18,r30
+  43               	.L3:
+  44               	.LVL2:
+  28:esp/esp.c     **** 	for (i = 0; r == -1 && i < length; i++) {
+  45               		.loc 1 28 0
+  46 001e 3196      		adiw r30,1
+  47               	.LVL3:
+  48 0020 2F3F      		cpi r18,-1
+  49 0022 BFEF      		ldi r27,-1
+  50 0024 3B07      		cpc r19,r27
+  51 0026 01F0      		breq .L2
+  52 0028 00C0      		rjmp .L4
+  53               	.LVL4:
+  54               	.L8:
+  55 002a 2FEF      		ldi r18,lo8(-1)
+  56 002c 3FEF      		ldi r19,lo8(-1)
+  57               	.LVL5:
+  58               	.L4:
+  30:esp/esp.c     **** 	}
+  31:esp/esp.c     **** 	return (uint8_t) (r & 0xff);
+  32:esp/esp.c     **** }
+  59               		.loc 1 32 0
+  60 002e 822F      		mov r24,r18
+  61 0030 0895      		ret
+  62               		.cfi_endproc
+  63               	.LFE1:
+  65               		.section	.rodata.str1.1,"aMS",@progbits,1
+  66               	.LC0:
+  67 0000 3C25 752C 		.string	"<%u, %u>{avr-debug|%s}\r\n"
+  67      2025 753E 
+  67      7B61 7672 
+  67      2D64 6562 
+  67      7567 7C25 
+  68               		.text
+  69               	.global	esp_debug
+  71               	esp_debug:
+  72               	.LFB2:
+  33:esp/esp.c     **** 
+  34:esp/esp.c     **** /**
+  35:esp/esp.c     ****  * send debug msg to las connected master
+  36:esp/esp.c     ****  */
+  37:esp/esp.c     **** void esp_debug(char *s) {
+  73               		.loc 1 37 0
+  74               		.cfi_startproc
+  75               	.LVL6:
+  76 0032 0F93      		push r16
+  77               	.LCFI0:
+  78               		.cfi_def_cfa_offset 3
+  79               		.cfi_offset 16, -2
+  80 0034 1F93      		push r17
+  81               	.LCFI1:
+  82               		.cfi_def_cfa_offset 4
+  83               		.cfi_offset 17, -3
+  84 0036 CF93      		push r28
+  85               	.LCFI2:
+  86               		.cfi_def_cfa_offset 5
+  87               		.cfi_offset 28, -4
+  88 0038 DF93      		push r29
+  89               	.LCFI3:
+  90               		.cfi_def_cfa_offset 6
+  91               		.cfi_offset 29, -5
+  92 003a CDB7      		in r28,__SP_L__
+  93 003c DEB7      		in r29,__SP_H__
+  94               	.LCFI4:
+  95               		.cfi_def_cfa_register 28
+  96 003e C556      		subi r28,101
+  97 0040 D109      		sbc r29,__zero_reg__
+  98               	.LCFI5:
+  99               		.cfi_def_cfa_offset 107
+ 100 0042 0FB6      		in __tmp_reg__,__SREG__
+ 101 0044 F894      		cli
+ 102 0046 DEBF      		out __SP_H__,r29
+ 103 0048 0FBE      		out __SREG__,__tmp_reg__
+ 104 004a CDBF      		out __SP_L__,r28
+ 105               	/* prologue: function */
+ 106               	/* frame size = 101 */
+ 107               	/* stack size = 105 */
+ 108               	.L__stack_usage = 105
+  38:esp/esp.c     **** 	char b[UART_SEND_BUFFER_SIZE + 1];
+  39:esp/esp.c     **** 	sprintf(b, "<%u, %u>{"HEADER_DEBUG"|%s}\r\n", id, strlen(s) + strlen(HEADER_DEBUG) + 3, s);
+ 109               		.loc 1 39 0
+ 110 004c FC01      		movw r30,r24
+ 111               		0:
+ 112 004e 0190      		ld __tmp_reg__,Z+
+ 113 0050 0020      		tst __tmp_reg__
+ 114 0052 01F4      		brne 0b
+ 115 0054 E81B      		sub r30,r24
+ 116 0056 F90B      		sbc r31,r25
+ 117 0058 9F93      		push r25
+ 118 005a 8F93      		push r24
+ 119 005c 3B96      		adiw r30,11
+ 120 005e FF93      		push r31
+ 121 0060 EF93      		push r30
+ 122 0062 8091 0000 		lds r24,id
+ 123               	.LVL7:
+ 124 0066 1F92      		push __zero_reg__
+ 125 0068 8F93      		push r24
+ 126 006a 80E0      		ldi r24,lo8(.LC0)
+ 127 006c 90E0      		ldi r25,hi8(.LC0)
+ 128 006e 9F93      		push r25
+ 129 0070 8F93      		push r24
+ 130 0072 8E01      		movw r16,r28
+ 131 0074 0F5F      		subi r16,-1
+ 132 0076 1F4F      		sbci r17,-1
+ 133 0078 1F93      		push r17
+ 134 007a 0F93      		push r16
+ 135 007c 00D0      		rcall sprintf
+ 136               	.LVL8:
+  40:esp/esp.c     **** 	send(b);
+ 137               		.loc 1 40 0
+ 138 007e C801      		movw r24,r16
+ 139 0080 00D0      		rcall send
+ 140               	.LVL9:
+ 141 0082 0FB6      		in __tmp_reg__,__SREG__
+ 142 0084 F894      		cli
+ 143 0086 DEBF      		out __SP_H__,r29
+ 144 0088 0FBE      		out __SREG__,__tmp_reg__
+ 145 008a CDBF      		out __SP_L__,r28
+ 146               	/* epilogue start */
+  41:esp/esp.c     **** }
+ 147               		.loc 1 41 0
+ 148 008c CB59      		subi r28,-101
+ 149 008e DF4F      		sbci r29,-1
+ 150 0090 0FB6      		in __tmp_reg__,__SREG__
+ 151 0092 F894      		cli
+ 152 0094 DEBF      		out __SP_H__,r29
+ 153 0096 0FBE      		out __SREG__,__tmp_reg__
+ 154 0098 CDBF      		out __SP_L__,r28
+ 155 009a DF91      		pop r29
+ 156 009c CF91      		pop r28
+ 157 009e 1F91      		pop r17
+ 158 00a0 0F91      		pop r16
+ 159 00a2 0895      		ret
+ 160               		.cfi_endproc
+ 161               	.LFE2:
+ 163               		.section	.rodata.str1.1
+ 164               	.LC1:
+ 165 0019 7B25 737D 		.string	"{%s}\r\n"
+ 165      0D0A 00
+ 166               		.text
+ 167               	.global	esp_send
+ 169               	esp_send:
+ 170               	.LFB3:
+  42:esp/esp.c     **** 
+  43:esp/esp.c     **** void esp_send(char *s) {
+ 171               		.loc 1 43 0
+ 172               		.cfi_startproc
+ 173               	.LVL10:
+ 174 00a4 0F93      		push r16
+ 175               	.LCFI6:
+ 176               		.cfi_def_cfa_offset 3
+ 177               		.cfi_offset 16, -2
+ 178 00a6 1F93      		push r17
+ 179               	.LCFI7:
+ 180               		.cfi_def_cfa_offset 4
+ 181               		.cfi_offset 17, -3
+ 182 00a8 CF93      		push r28
+ 183               	.LCFI8:
+ 184               		.cfi_def_cfa_offset 5
+ 185               		.cfi_offset 28, -4
+ 186 00aa DF93      		push r29
+ 187               	.LCFI9:
+ 188               		.cfi_def_cfa_offset 6
+ 189               		.cfi_offset 29, -5
+ 190 00ac CDB7      		in r28,__SP_L__
+ 191 00ae DEB7      		in r29,__SP_H__
+ 192               	.LCFI10:
+ 193               		.cfi_def_cfa_register 28
+ 194 00b0 C556      		subi r28,101
+ 195 00b2 D109      		sbc r29,__zero_reg__
+ 196               	.LCFI11:
+ 197               		.cfi_def_cfa_offset 107
+ 198 00b4 0FB6      		in __tmp_reg__,__SREG__
+ 199 00b6 F894      		cli
+ 200 00b8 DEBF      		out __SP_H__,r29
+ 201 00ba 0FBE      		out __SREG__,__tmp_reg__
+ 202 00bc CDBF      		out __SP_L__,r28
+ 203               	/* prologue: function */
+ 204               	/* frame size = 101 */
+ 205               	/* stack size = 105 */
+ 206               	.L__stack_usage = 105
+  44:esp/esp.c     **** 	char b[UART_SEND_BUFFER_SIZE + 1];
+  45:esp/esp.c     **** 	sprintf(b, "{%s}\r\n", s);
+ 207               		.loc 1 45 0
+ 208 00be 9F93      		push r25
+ 209 00c0 8F93      		push r24
+ 210 00c2 80E0      		ldi r24,lo8(.LC1)
+ 211 00c4 90E0      		ldi r25,hi8(.LC1)
+ 212               	.LVL11:
+ 213 00c6 9F93      		push r25
+ 214 00c8 8F93      		push r24
+ 215 00ca 8E01      		movw r16,r28
+ 216 00cc 0F5F      		subi r16,-1
+ 217 00ce 1F4F      		sbci r17,-1
+ 218 00d0 1F93      		push r17
+ 219 00d2 0F93      		push r16
+ 220 00d4 00D0      		rcall sprintf
+ 221               	.LVL12:
+  46:esp/esp.c     **** 	send(b);
+ 222               		.loc 1 46 0
+ 223 00d6 C801      		movw r24,r16
+ 224 00d8 00D0      		rcall send
+ 225               	.LVL13:
+ 226 00da 0F90      		pop __tmp_reg__
+ 227 00dc 0F90      		pop __tmp_reg__
+ 228 00de 0F90      		pop __tmp_reg__
+ 229 00e0 0F90      		pop __tmp_reg__
+ 230 00e2 0F90      		pop __tmp_reg__
+ 231 00e4 0F90      		pop __tmp_reg__
+ 232               	/* epilogue start */
+  47:esp/esp.c     **** }
+ 233               		.loc 1 47 0
+ 234 00e6 CB59      		subi r28,-101
+ 235 00e8 DF4F      		sbci r29,-1
+ 236 00ea 0FB6      		in __tmp_reg__,__SREG__
+ 237 00ec F894      		cli
+ 238 00ee DEBF      		out __SP_H__,r29
+ 239 00f0 0FBE      		out __SREG__,__tmp_reg__
+ 240 00f2 CDBF      		out __SP_L__,r28
+ 241 00f4 DF91      		pop r29
+ 242 00f6 CF91      		pop r28
+ 243 00f8 1F91      		pop r17
+ 244 00fa 0F91      		pop r16
+ 245 00fc 0895      		ret
+ 246               		.cfi_endproc
+ 247               	.LFE3:
+ 249               		.section	.rodata.str1.1
+ 250               	.LC2:
+ 251 0020 7B00      		.string	"{"
+ 252               	.LC3:
+ 253 0022 7D00      		.string	"}"
+ 254               		.text
+ 255               	.global	esp_sendf
+ 257               	esp_sendf:
+ 258               	.LFB4:
+  48:esp/esp.c     **** 
+  49:esp/esp.c     **** /**
+  50:esp/esp.c     ****  * Warning: No length control !!!
+  51:esp/esp.c     ****  */
+  52:esp/esp.c     **** void esp_sendf(char *s, ...) {
+ 259               		.loc 1 52 0
+ 260               		.cfi_startproc
+ 261               	.LVL14:
+ 262 00fe 0F93      		push r16
+ 263               	.LCFI12:
+ 264               		.cfi_def_cfa_offset 3
+ 265               		.cfi_offset 16, -2
+ 266 0100 1F93      		push r17
+ 267               	.LCFI13:
+ 268               		.cfi_def_cfa_offset 4
+ 269               		.cfi_offset 17, -3
+ 270 0102 CF93      		push r28
+ 271               	.LCFI14:
+ 272               		.cfi_def_cfa_offset 5
+ 273               		.cfi_offset 28, -4
+ 274 0104 DF93      		push r29
+ 275               	.LCFI15:
+ 276               		.cfi_def_cfa_offset 6
+ 277               		.cfi_offset 29, -5
+ 278 0106 CDB7      		in r28,__SP_L__
+ 279 0108 DEB7      		in r29,__SP_H__
+ 280               	.LCFI16:
+ 281               		.cfi_def_cfa_register 28
+ 282 010a C556      		subi r28,101
+ 283 010c D109      		sbc r29,__zero_reg__
+ 284               	.LCFI17:
+ 285               		.cfi_def_cfa_offset 107
+ 286 010e 0FB6      		in __tmp_reg__,__SREG__
+ 287 0110 F894      		cli
+ 288 0112 DEBF      		out __SP_H__,r29
+ 289 0114 0FBE      		out __SREG__,__tmp_reg__
+ 290 0116 CDBF      		out __SP_L__,r28
+ 291               	/* prologue: function */
+ 292               	/* frame size = 101 */
+ 293               	/* stack size = 105 */
+ 294               	.L__stack_usage = 105
+ 295 0118 8E01      		movw r16,r28
+ 296 011a 0459      		subi r16,-108
+ 297 011c 1F4F      		sbci r17,-1
+ 298 011e F801      		movw r30,r16
+ 299 0120 2191      		ld r18,Z+
+ 300 0122 3191      		ld r19,Z+
+ 301 0124 8F01      		movw r16,r30
+ 302               	.LVL15:
+  53:esp/esp.c     **** 	char b[UART_SEND_BUFFER_SIZE + 1];
+  54:esp/esp.c     **** 	uint8_t l = 0;
+  55:esp/esp.c     **** 
+  56:esp/esp.c     **** 	va_list vl;
+  57:esp/esp.c     **** 	va_start(vl, s);
+  58:esp/esp.c     **** 
+  59:esp/esp.c     **** 	l += sprintf(b, "{");
+ 303               		.loc 1 59 0
+ 304 0126 60E0      		ldi r22,lo8(.LC2)
+ 305 0128 70E0      		ldi r23,hi8(.LC2)
+ 306 012a CE01      		movw r24,r28
+ 307 012c 0196      		adiw r24,1
+ 308 012e 00D0      		rcall strcpy
+ 309               	.LVL16:
+  60:esp/esp.c     **** 	l += vsprintf(&b[l], s, vl);
+ 310               		.loc 1 60 0
+ 311 0130 A801      		movw r20,r16
+ 312 0132 AE96      		adiw r28,108-62
+ 313 0134 6EAD      		ldd r22,Y+62
+ 314 0136 7FAD      		ldd r23,Y+63
+ 315 0138 AE97      		sbiw r28,108-62
+ 316 013a CE01      		movw r24,r28
+ 317 013c 0296      		adiw r24,2
+ 318 013e 00D0      		rcall vsprintf
+ 319               	.LVL17:
+ 320 0140 8F5F      		subi r24,lo8(-(1))
+ 321               	.LVL18:
+  61:esp/esp.c     **** 	l += sprintf(&b[l], "}");
+ 322               		.loc 1 61 0
+ 323 0142 60E0      		ldi r22,lo8(.LC3)
+ 324 0144 70E0      		ldi r23,hi8(.LC3)
+ 325 0146 E1E0      		ldi r30,lo8(1)
+ 326 0148 F0E0      		ldi r31,0
+ 327 014a EC0F      		add r30,r28
+ 328 014c FD1F      		adc r31,r29
+ 329 014e E80F      		add r30,r24
+ 330 0150 F11D      		adc r31,__zero_reg__
+ 331 0152 CF01      		movw r24,r30
+ 332               	.LVL19:
+ 333 0154 00D0      		rcall strcpy
+ 334               	.LVL20:
+  62:esp/esp.c     **** 
+  63:esp/esp.c     **** 	va_end(vl);
+  64:esp/esp.c     **** 
+  65:esp/esp.c     **** 	send(b);
+ 335               		.loc 1 65 0
+ 336 0156 CE01      		movw r24,r28
+ 337 0158 0196      		adiw r24,1
+ 338 015a 00D0      		rcall send
+ 339               	.LVL21:
+ 340               	/* epilogue start */
+  66:esp/esp.c     **** }
+ 341               		.loc 1 66 0
+ 342 015c CB59      		subi r28,-101
+ 343 015e DF4F      		sbci r29,-1
+ 344 0160 0FB6      		in __tmp_reg__,__SREG__
+ 345 0162 F894      		cli
+ 346 0164 DEBF      		out __SP_H__,r29
+ 347 0166 0FBE      		out __SREG__,__tmp_reg__
+ 348 0168 CDBF      		out __SP_L__,r28
+ 349 016a DF91      		pop r29
+ 350 016c CF91      		pop r28
+ 351 016e 1F91      		pop r17
+ 352 0170 0F91      		pop r16
+ 353               	.LVL22:
+ 354 0172 0895      		ret
+ 355               		.cfi_endproc
+ 356               	.LFE4:
+ 358               		.section	.rodata.str1.1
+ 359               	.LC4:
+ 360 0024 7B61 7672 		.string	"{avr-debug|"
+ 360      2D64 6562 
+ 360      7567 7C00 
+ 361               	.LC5:
+ 362 0030 3C25 752C 		.string	"<%u, %u>"
+ 362      2025 753E 
+ 362      00
+ 363               		.text
+ 364               	.global	esp_debugf
+ 366               	esp_debugf:
+ 367               	.LFB5:
+  67:esp/esp.c     **** 
+  68:esp/esp.c     **** /**
+  69:esp/esp.c     ****  * Warning: No length control !!!
+  70:esp/esp.c     ****  *
+  71:esp/esp.c     ****  */
+  72:esp/esp.c     **** void esp_debugf(char *s, ...) {
+ 368               		.loc 1 72 0
+ 369               		.cfi_startproc
+ 370               	.LVL23:
+ 371 0174 0F93      		push r16
+ 372               	.LCFI18:
+ 373               		.cfi_def_cfa_offset 3
+ 374               		.cfi_offset 16, -2
+ 375 0176 1F93      		push r17
+ 376               	.LCFI19:
+ 377               		.cfi_def_cfa_offset 4
+ 378               		.cfi_offset 17, -3
+ 379 0178 CF93      		push r28
+ 380               	.LCFI20:
+ 381               		.cfi_def_cfa_offset 5
+ 382               		.cfi_offset 28, -4
+ 383 017a DF93      		push r29
+ 384               	.LCFI21:
+ 385               		.cfi_def_cfa_offset 6
+ 386               		.cfi_offset 29, -5
+ 387 017c CDB7      		in r28,__SP_L__
+ 388 017e DEB7      		in r29,__SP_H__
+ 389               	.LCFI22:
+ 390               		.cfi_def_cfa_register 28
+ 391 0180 C057      		subi r28,112
+ 392 0182 D109      		sbc r29,__zero_reg__
+ 393               	.LCFI23:
+ 394               		.cfi_def_cfa_offset 118
+ 395 0184 0FB6      		in __tmp_reg__,__SREG__
+ 396 0186 F894      		cli
+ 397 0188 DEBF      		out __SP_H__,r29
+ 398 018a 0FBE      		out __SREG__,__tmp_reg__
+ 399 018c CDBF      		out __SP_L__,r28
+ 400               	/* prologue: function */
+ 401               	/* frame size = 112 */
+ 402               	/* stack size = 116 */
+ 403               	.L__stack_usage = 116
+ 404 018e 8E01      		movw r16,r28
+ 405 0190 0958      		subi r16,-119
+ 406 0192 1F4F      		sbci r17,-1
+ 407 0194 F801      		movw r30,r16
+ 408 0196 2191      		ld r18,Z+
+ 409 0198 3191      		ld r19,Z+
+ 410 019a 8F01      		movw r16,r30
+ 411               	.LVL24:
+  73:esp/esp.c     **** 
+  74:esp/esp.c     **** 	char b[UART_SEND_BUFFER_SIZE + ASYNC_MSG_HEADER_BUFFER + 1];
+  75:esp/esp.c     **** 	uint8_t dl = 0;
+  76:esp/esp.c     **** 	uint8_t hl = 0;
+  77:esp/esp.c     **** 
+  78:esp/esp.c     **** 	va_list vl;
+  79:esp/esp.c     **** 	va_start(vl, s);
+  80:esp/esp.c     **** 
+  81:esp/esp.c     **** 	dl += sprintf(&b[ASYNC_MSG_HEADER_BUFFER], "{"HEADER_DEBUG"|");
+ 412               		.loc 1 81 0
+ 413 019c 60E0      		ldi r22,lo8(.LC4)
+ 414 019e 70E0      		ldi r23,hi8(.LC4)
+ 415 01a0 CE01      		movw r24,r28
+ 416 01a2 0B96      		adiw r24,11
+ 417 01a4 00D0      		rcall strcpy
+ 418               	.LVL25:
+  82:esp/esp.c     **** 
+  83:esp/esp.c     **** 	dl += vsprintf(&b[ASYNC_MSG_HEADER_BUFFER + dl], s, vl);
+ 419               		.loc 1 83 0
+ 420 01a6 A801      		movw r20,r16
+ 421 01a8 E996      		adiw r28,119-62
+ 422 01aa 6EAD      		ldd r22,Y+62
+ 423 01ac 7FAD      		ldd r23,Y+63
+ 424 01ae E997      		sbiw r28,119-62
+ 425 01b0 CE01      		movw r24,r28
+ 426 01b2 4696      		adiw r24,22
+ 427 01b4 00D0      		rcall vsprintf
+ 428               	.LVL26:
+ 429 01b6 482F      		mov r20,r24
+ 430               	.LVL27:
+ 431 01b8 2BE0      		ldi r18,lo8(11)
+ 432 01ba 280F      		add r18,r24
+ 433               	.LVL28:
+  84:esp/esp.c     **** 
+  85:esp/esp.c     **** 	strcat(&b[ASYNC_MSG_HEADER_BUFFER + dl], "}");
+ 434               		.loc 1 85 0
+ 435 01bc 822F      		mov r24,r18
+ 436 01be 90E0      		ldi r25,0
+ 437 01c0 0A96      		adiw r24,10
+ 438 01c2 8E01      		movw r16,r28
+ 439               	.LVL29:
+ 440 01c4 0F5F      		subi r16,-1
+ 441 01c6 1F4F      		sbci r17,-1
+ 442               	.LVL30:
+ 443 01c8 60E0      		ldi r22,lo8(.LC3)
+ 444 01ca 70E0      		ldi r23,hi8(.LC3)
+ 445 01cc 800F      		add r24,r16
+ 446 01ce 911F      		adc r25,r17
+ 447 01d0 E196      		adiw r28,112-63
+ 448 01d2 4FAF      		std Y+63,r20
+ 449 01d4 E197      		sbiw r28,112-63
+ 450 01d6 00D0      		rcall strcat
+ 451               	.LVL31:
+  86:esp/esp.c     **** 	dl += 1;
+ 452               		.loc 1 86 0
+ 453 01d8 E196      		adiw r28,112-63
+ 454 01da 4FAD      		ldd r20,Y+63
+ 455 01dc E197      		sbiw r28,112-63
+ 456 01de 445F      		subi r20,lo8(-(12))
+ 457               	.LVL32:
+  87:esp/esp.c     **** 
+  88:esp/esp.c     **** 	hl = sprintf(b, "<%u, %u>", id, dl);
+ 458               		.loc 1 88 0
+ 459 01e0 1F92      		push __zero_reg__
+ 460 01e2 4F93      		push r20
+ 461 01e4 8091 0000 		lds r24,id
+ 462 01e8 1F92      		push __zero_reg__
+ 463 01ea 8F93      		push r24
+ 464 01ec 80E0      		ldi r24,lo8(.LC5)
+ 465 01ee 90E0      		ldi r25,hi8(.LC5)
+ 466 01f0 9F93      		push r25
+ 467 01f2 8F93      		push r24
+ 468 01f4 1F93      		push r17
+ 469 01f6 0F93      		push r16
+ 470 01f8 00D0      		rcall sprintf
+ 471               	.LVL33:
+ 472 01fa 782F      		mov r23,r24
+ 473               	.LVL34:
+  89:esp/esp.c     **** 
+  90:esp/esp.c     **** 	// move the <> header to begin body {}
+  91:esp/esp.c     **** 	uint8_t i;
+  92:esp/esp.c     **** 	for (i = 1; i <= hl; i++)
+ 474               		.loc 1 92 0
+ 475 01fc 0FB6      		in __tmp_reg__,__SREG__
+ 476 01fe F894      		cli
+ 477 0200 DEBF      		out __SP_H__,r29
+ 478 0202 0FBE      		out __SREG__,__tmp_reg__
+ 479 0204 CDBF      		out __SP_L__,r28
+ 480               	.LVL35:
+ 481 0206 61E0      		ldi r22,lo8(1)
+ 482 0208 9927      		clr r25
+ 483               	.LVL36:
+  93:esp/esp.c     **** 		b[ASYNC_MSG_HEADER_BUFFER - i] = b[hl - i];
+ 484               		.loc 1 93 0
+ 485 020a 4AE0      		ldi r20,lo8(10)
+ 486 020c 50E0      		ldi r21,0
+ 487               	.LVL37:
+ 488               	.L13:
+  92:esp/esp.c     **** 	for (i = 1; i <= hl; i++)
+ 489               		.loc 1 92 0 discriminator 1
+ 490 020e 7617      		cp r23,r22
+ 491 0210 00F0      		brlo .L15
+ 492               		.loc 1 93 0 discriminator 2
+ 493 0212 262F      		mov r18,r22
+ 494 0214 30E0      		ldi r19,0
+ 495 0216 FC01      		movw r30,r24
+ 496 0218 E21B      		sub r30,r18
+ 497 021a F30B      		sbc r31,r19
+ 498 021c E00F      		add r30,r16
+ 499 021e F11F      		adc r31,r17
+ 500 0220 A081      		ld r26,Z
+ 501 0222 FA01      		movw r30,r20
+ 502 0224 E21B      		sub r30,r18
+ 503 0226 F30B      		sbc r31,r19
+ 504 0228 E00F      		add r30,r16
+ 505 022a F11F      		adc r31,r17
+ 506 022c A083      		st Z,r26
+  92:esp/esp.c     **** 	for (i = 1; i <= hl; i++)
+ 507               		.loc 1 92 0 discriminator 2
+ 508 022e 6F5F      		subi r22,lo8(-(1))
+ 509               	.LVL38:
+ 510 0230 00C0      		rjmp .L13
+ 511               	.L15:
+  94:esp/esp.c     **** 
+  95:esp/esp.c     **** 	va_end(vl);
+  96:esp/esp.c     **** 
+  97:esp/esp.c     **** 	send(&b[ASYNC_MSG_HEADER_BUFFER - hl]);
+ 512               		.loc 1 97 0
+ 513 0232 9801      		movw r18,r16
+ 514 0234 281B      		sub r18,r24
+ 515 0236 390B      		sbc r19,r25
+ 516 0238 C901      		movw r24,r18
+ 517 023a 0A96      		adiw r24,10
+ 518 023c 00D0      		rcall send
+ 519               	.LVL39:
+ 520               	/* epilogue start */
+  98:esp/esp.c     **** 
+  99:esp/esp.c     **** }
+ 521               		.loc 1 99 0
+ 522 023e C059      		subi r28,-112
+ 523 0240 DF4F      		sbci r29,-1
+ 524 0242 0FB6      		in __tmp_reg__,__SREG__
+ 525 0244 F894      		cli
+ 526 0246 DEBF      		out __SP_H__,r29
+ 527 0248 0FBE      		out __SREG__,__tmp_reg__
+ 528 024a CDBF      		out __SP_L__,r28
+ 529               	.LVL40:
+ 530 024c DF91      		pop r29
+ 531 024e CF91      		pop r28
+ 532 0250 1F91      		pop r17
+ 533 0252 0F91      		pop r16
+ 534               	.LVL41:
+ 535 0254 0895      		ret
+ 536               		.cfi_endproc
+ 537               	.LFE5:
+ 539               	.global	esp_isMsgToExe
+ 541               	esp_isMsgToExe:
+ 542               	.LFB6:
+ 100:esp/esp.c     **** 
+ 101:esp/esp.c     **** char esp_isMsgToExe(void) {
+ 543               		.loc 1 101 0
+ 544               		.cfi_startproc
+ 545               	/* prologue: function */
+ 546               	/* frame size = 0 */
+ 547               	/* stack size = 0 */
+ 548               	.L__stack_usage = 0
+ 102:esp/esp.c     **** 	return esp_state == waiting_for_executoion;
+ 549               		.loc 1 102 0
+ 550 0256 9091 0000 		lds r25,esp_state
+ 551 025a 81E0      		ldi r24,lo8(1)
+ 552 025c 9430      		cpi r25,lo8(4)
+ 553 025e 01F0      		breq .L17
+ 554 0260 80E0      		ldi r24,0
+ 555               	.L17:
+ 103:esp/esp.c     **** }
+ 556               		.loc 1 103 0
+ 557 0262 0895      		ret
+ 558               		.cfi_endproc
+ 559               	.LFE6:
+ 561               	.global	esp_done
+ 563               	esp_done:
+ 564               	.LFB7:
+ 104:esp/esp.c     **** 
+ 105:esp/esp.c     **** /**
+ 106:esp/esp.c     ****  * call after msg executed
+ 107:esp/esp.c     ****  */
+ 108:esp/esp.c     **** void esp_done(void) {
+ 565               		.loc 1 108 0
+ 566               		.cfi_startproc
+ 567               	/* prologue: function */
+ 568               	/* frame size = 0 */
+ 569               	/* stack size = 0 */
+ 570               	.L__stack_usage = 0
+ 109:esp/esp.c     **** 	esp_state = waiting_for_cmd;
+ 571               		.loc 1 109 0
+ 572 0264 1092 0000 		sts esp_state,__zero_reg__
+ 573 0268 0895      		ret
+ 574               		.cfi_endproc
+ 575               	.LFE7:
+ 577               	.global	esp_getMsg
+ 579               	esp_getMsg:
+ 580               	.LFB8:
+ 110:esp/esp.c     **** }
+ 111:esp/esp.c     **** 
+ 112:esp/esp.c     **** /**
+ 113:esp/esp.c     ****  * Remember to call esp_done() when execution done
+ 114:esp/esp.c     ****  */
+ 115:esp/esp.c     **** char* esp_getMsg(void) {
+ 581               		.loc 1 115 0
+ 582               		.cfi_startproc
+ 583               	/* prologue: function */
+ 584               	/* frame size = 0 */
+ 585               	/* stack size = 0 */
+ 586               	.L__stack_usage = 0
+ 116:esp/esp.c     **** 	return buffer;
+ 117:esp/esp.c     **** }
+ 587               		.loc 1 117 0
+ 588 026a 80E0      		ldi r24,lo8(buffer)
+ 589 026c 90E0      		ldi r25,hi8(buffer)
+ 590 026e 0895      		ret
+ 591               		.cfi_endproc
+ 592               	.LFE8:
+ 594               	.global	esp_getMsg_done
+ 596               	esp_getMsg_done:
+ 597               	.LFB9:
+ 118:esp/esp.c     **** /**
+ 119:esp/esp.c     ****  * esp_done() called automatically
+ 120:esp/esp.c     ****  * buffer size should be great or equal then size(buffer)
+ 121:esp/esp.c     ****  */
+ 122:esp/esp.c     **** void esp_getMsg_done(char *b) {
+ 598               		.loc 1 122 0
+ 599               		.cfi_startproc
+ 600               	.LVL42:
+ 601               	/* prologue: function */
+ 602               	/* frame size = 0 */
+ 603               	/* stack size = 0 */
+ 604               	.L__stack_usage = 0
+ 123:esp/esp.c     **** 	strcpy(b, buffer);
+ 605               		.loc 1 123 0
+ 606 0270 60E0      		ldi r22,lo8(buffer)
+ 607 0272 70E0      		ldi r23,hi8(buffer)
+ 608 0274 00D0      		rcall strcpy
+ 609               	.LVL43:
+ 610               	.LBB4:
+ 611               	.LBB5:
+ 109:esp/esp.c     **** 	esp_state = waiting_for_cmd;
+ 612               		.loc 1 109 0
+ 613 0276 1092 0000 		sts esp_state,__zero_reg__
+ 614 027a 0895      		ret
+ 615               	.LBE5:
+ 616               	.LBE4:
+ 617               		.cfi_endproc
+ 618               	.LFE9:
+ 620               	.global	onChar
+ 622               	onChar:
+ 623               	.LFB10:
+ 124:esp/esp.c     **** 	esp_done();
+ 125:esp/esp.c     **** }
+ 126:esp/esp.c     **** 
+ 127:esp/esp.c     **** void onChar(char c) {
+ 624               		.loc 1 127 0
+ 625               		.cfi_startproc
+ 626               	.LVL44:
+ 627 027c 0F93      		push r16
+ 628               	.LCFI24:
+ 629               		.cfi_def_cfa_offset 3
+ 630               		.cfi_offset 16, -2
+ 631 027e 1F93      		push r17
+ 632               	.LCFI25:
+ 633               		.cfi_def_cfa_offset 4
+ 634               		.cfi_offset 17, -3
+ 635 0280 CF93      		push r28
+ 636               	.LCFI26:
+ 637               		.cfi_def_cfa_offset 5
+ 638               		.cfi_offset 28, -4
+ 639 0282 DF93      		push r29
+ 640               	.LCFI27:
+ 641               		.cfi_def_cfa_offset 6
+ 642               		.cfi_offset 29, -5
+ 643 0284 1F92      		push __zero_reg__
+ 644               	.LCFI28:
+ 645               		.cfi_def_cfa_offset 7
+ 646 0286 CDB7      		in r28,__SP_L__
+ 647 0288 DEB7      		in r29,__SP_H__
+ 648               	.LCFI29:
+ 649               		.cfi_def_cfa_register 28
+ 650               	/* prologue: function */
+ 651               	/* frame size = 1 */
+ 652               	/* stack size = 5 */
+ 653               	.L__stack_usage = 5
+ 128:esp/esp.c     **** 
+ 129:esp/esp.c     **** 
+ 130:esp/esp.c     **** 
+ 131:esp/esp.c     **** 
+ 132:esp/esp.c     **** 	switch (esp_state) {
+ 654               		.loc 1 132 0
+ 655 028a 9091 0000 		lds r25,esp_state
+ 656 028e 9130      		cpi r25,lo8(1)
+ 657 0290 01F4      		brne .+2
+ 658 0292 00C0      		rjmp .L26
+ 659 0294 00F0      		brlo .L27
+ 660 0296 9230      		cpi r25,lo8(2)
+ 661 0298 01F4      		brne .+2
+ 662 029a 00C0      		rjmp .L28
+ 663 029c 9330      		cpi r25,lo8(3)
+ 664 029e 01F0      		breq .L29
+ 665 02a0 00C0      		rjmp .L24
+ 666               	.L27:
+ 133:esp/esp.c     **** 	case waiting_for_cmd:
+ 134:esp/esp.c     **** 		p = 0;
+ 135:esp/esp.c     **** 		if (c == '{') {
+ 667               		.loc 1 135 0
+ 668 02a2 8B37      		cpi r24,lo8(123)
+ 669 02a4 01F4      		brne .L30
+ 136:esp/esp.c     **** 			buffer[p++] = c;
+ 670               		.loc 1 136 0
+ 671 02a6 91E0      		ldi r25,lo8(1)
+ 672 02a8 9093 0000 		sts p,r25
+ 673 02ac 8093 0000 		sts buffer,r24
+ 137:esp/esp.c     **** 			esp_state = reciving_unknown_length_data;
+ 674               		.loc 1 137 0
+ 675 02b0 82E0      		ldi r24,lo8(2)
+ 676               	.LVL45:
+ 677 02b2 00C0      		rjmp .L40
+ 678               	.LVL46:
+ 679               	.L30:
+ 134:esp/esp.c     **** 		p = 0;
+ 680               		.loc 1 134 0
+ 681 02b4 1092 0000 		sts p,__zero_reg__
+ 138:esp/esp.c     **** 			return;
+ 139:esp/esp.c     **** 		}
+ 140:esp/esp.c     **** 
+ 141:esp/esp.c     **** 		/****************************************************************
+ 142:esp/esp.c     **** 		 * Command to send data to the remote client
+ 143:esp/esp.c     **** 		 * receive <id, size> thru uart
+ 144:esp/esp.c     **** 		 * id - of connection
+ 145:esp/esp.c     **** 		 * size - of data to receive by uart and send to client
+ 146:esp/esp.c     **** 		 ****************************************************************/
+ 147:esp/esp.c     **** 
+ 148:esp/esp.c     **** 		if (c == '<') {
+ 682               		.loc 1 148 0
+ 683 02b8 8C33      		cpi r24,lo8(60)
+ 684 02ba 01F0      		breq .+2
+ 685 02bc 00C0      		rjmp .L24
+ 149:esp/esp.c     **** 			buffer[p++] = c;
+ 686               		.loc 1 149 0
+ 687 02be 91E0      		ldi r25,lo8(1)
+ 688 02c0 9093 0000 		sts p,r25
+ 689 02c4 8093 0000 		sts buffer,r24
+ 150:esp/esp.c     **** 			esp_state = reciving_header;
+ 690               		.loc 1 150 0
+ 691 02c8 83E0      		ldi r24,lo8(3)
+ 692               	.LVL47:
+ 693               	.L40:
+ 694 02ca 8093 0000 		sts esp_state,r24
+ 151:esp/esp.c     **** 			return;
+ 695               		.loc 1 151 0
+ 696 02ce 00C0      		rjmp .L24
+ 697               	.LVL48:
+ 698               	.L29:
+ 152:esp/esp.c     **** 		}
+ 153:esp/esp.c     **** 
+ 154:esp/esp.c     **** 		break;
+ 155:esp/esp.c     **** 
+ 156:esp/esp.c     **** 	case reciving_header:
+ 157:esp/esp.c     **** 		//--------------------------------------------------------
+ 158:esp/esp.c     **** 		buffer[p++] = c;
+ 699               		.loc 1 158 0
+ 700 02d0 E091 0000 		lds r30,p
+ 701 02d4 61E0      		ldi r22,lo8(1)
+ 702 02d6 6E0F      		add r22,r30
+ 703 02d8 6093 0000 		sts p,r22
+ 704 02dc F0E0      		ldi r31,0
+ 705 02de E050      		subi r30,lo8(-(buffer))
+ 706 02e0 F040      		sbci r31,hi8(-(buffer))
+ 707 02e2 8083      		st Z,r24
+ 159:esp/esp.c     **** 
+ 160:esp/esp.c     **** 		if (p && buffer[p - 1] == '>') {
+ 708               		.loc 1 160 0
+ 709 02e4 6623      		tst r22
+ 710 02e6 01F4      		brne .+2
+ 711 02e8 00C0      		rjmp .L24
+ 712               		.loc 1 160 0 is_stmt 0 discriminator 1
+ 713 02ea 062F      		mov r16,r22
+ 714 02ec 10E0      		ldi r17,0
+ 715 02ee 0050      		subi r16,lo8(-(buffer))
+ 716 02f0 1040      		sbci r17,hi8(-(buffer))
+ 717 02f2 F801      		movw r30,r16
+ 718 02f4 3197      		sbiw r30,1
+ 719 02f6 8081      		ld r24,Z
+ 720               	.LVL49:
+ 721 02f8 8E33      		cpi r24,lo8(62)
+ 722 02fa 01F0      		breq .+2
+ 723 02fc 00C0      		rjmp .L24
+ 161:esp/esp.c     **** 
+ 162:esp/esp.c     **** 			id = atoi(buffer + 1);
+ 724               		.loc 1 162 0 is_stmt 1
+ 725 02fe 80E0      		ldi r24,lo8(buffer+1)
+ 726 0300 90E0      		ldi r25,hi8(buffer+1)
+ 727 0302 6983      		std Y+1,r22
+ 728 0304 00D0      		rcall atoi
+ 729               	.LVL50:
+ 730 0306 8093 0000 		sts id,r24
+ 163:esp/esp.c     **** 			size = atoi((char *) (buffer + 1 + find_first(buffer, p, ',')));
+ 731               		.loc 1 163 0
+ 732 030a 4CE2      		ldi r20,lo8(44)
+ 733 030c 6981      		ldd r22,Y+1
+ 734 030e 80E0      		ldi r24,lo8(buffer)
+ 735 0310 90E0      		ldi r25,hi8(buffer)
+ 736 0312 00D0      		rcall find_first
+ 737               	.LVL51:
+ 738 0314 90E0      		ldi r25,0
+ 739 0316 8050      		subi r24,lo8(-(buffer+1))
+ 740 0318 9040      		sbci r25,hi8(-(buffer+1))
+ 741 031a 00D0      		rcall atoi
+ 742               	.LVL52:
+ 743 031c 8093 0000 		sts size,r24
+ 164:esp/esp.c     **** 
+ 165:esp/esp.c     **** 			if (size == 0) {
+ 744               		.loc 1 165 0
+ 745 0320 8111      		cpse r24,__zero_reg__
+ 746 0322 00C0      		rjmp .L33
+ 166:esp/esp.c     **** 				esp_state = waiting_for_executoion;
+ 747               		.loc 1 166 0
+ 748 0324 84E0      		ldi r24,lo8(4)
+ 749 0326 00C0      		rjmp .L39
+ 750               	.L33:
+ 167:esp/esp.c     **** 			} else {
+ 168:esp/esp.c     **** 				esp_state = receiving_data;
+ 751               		.loc 1 168 0
+ 752 0328 81E0      		ldi r24,lo8(1)
+ 753               	.L39:
+ 754 032a 8093 0000 		sts esp_state,r24
+ 169:esp/esp.c     **** 			}
+ 170:esp/esp.c     **** 
+ 171:esp/esp.c     **** 			buffer[p] = 0;
+ 755               		.loc 1 171 0
+ 756 032e F801      		movw r30,r16
+ 757 0330 1082      		st Z,__zero_reg__
+ 758 0332 00C0      		rjmp .L42
+ 759               	.LVL53:
+ 760               	.L28:
+ 172:esp/esp.c     **** 			p = 0;
+ 173:esp/esp.c     **** 
+ 174:esp/esp.c     **** 		}
+ 175:esp/esp.c     **** 
+ 176:esp/esp.c     **** 		break;
+ 177:esp/esp.c     **** 	case reciving_unknown_length_data:
+ 178:esp/esp.c     **** 		//--------------------------------------------------------
+ 179:esp/esp.c     **** 		if (p >= UART_SEND_BUFFER_SIZE) {
+ 761               		.loc 1 179 0
+ 762 0334 A091 0000 		lds r26,p
+ 763 0338 A436      		cpi r26,lo8(100)
+ 764 033a 00F0      		brlo .L35
+ 180:esp/esp.c     **** 			esp_state = waiting_for_cmd;
+ 765               		.loc 1 180 0
+ 766 033c 1092 0000 		sts esp_state,__zero_reg__
+ 767 0340 00C0      		rjmp .L42
+ 768               	.L35:
+ 181:esp/esp.c     **** 			p = 0;
+ 182:esp/esp.c     **** 			return;
+ 183:esp/esp.c     **** 		}
+ 184:esp/esp.c     **** 
+ 185:esp/esp.c     **** 		buffer[p++] = c;
+ 769               		.loc 1 185 0
+ 770 0342 E1E0      		ldi r30,lo8(1)
+ 771 0344 EA0F      		add r30,r26
+ 772 0346 E093 0000 		sts p,r30
+ 773 034a B0E0      		ldi r27,0
+ 774 034c A050      		subi r26,lo8(-(buffer))
+ 775 034e B040      		sbci r27,hi8(-(buffer))
+ 776 0350 8C93      		st X,r24
+ 186:esp/esp.c     **** 
+ 187:esp/esp.c     **** 		if (c == '}') {
+ 777               		.loc 1 187 0
+ 778 0352 8D37      		cpi r24,lo8(125)
+ 779 0354 01F4      		brne .L24
+ 780 0356 00C0      		rjmp .L41
+ 781               	.L26:
+ 188:esp/esp.c     **** 
+ 189:esp/esp.c     **** 			buffer[p] = 0;
+ 190:esp/esp.c     **** 			esp_state = waiting_for_executoion;
+ 191:esp/esp.c     **** 			p = 0;
+ 192:esp/esp.c     **** 		}
+ 193:esp/esp.c     **** 
+ 194:esp/esp.c     **** 		break;
+ 195:esp/esp.c     **** 	case receiving_data:
+ 196:esp/esp.c     **** 		//--------------------------------------------------------
+ 197:esp/esp.c     **** 		buffer[p++] = c;
+ 782               		.loc 1 197 0
+ 783 0358 A091 0000 		lds r26,p
+ 784 035c E1E0      		ldi r30,lo8(1)
+ 785 035e EA0F      		add r30,r26
+ 786 0360 E093 0000 		sts p,r30
+ 787 0364 B0E0      		ldi r27,0
+ 788 0366 A050      		subi r26,lo8(-(buffer))
+ 789 0368 B040      		sbci r27,hi8(-(buffer))
+ 790 036a 8C93      		st X,r24
+ 198:esp/esp.c     **** 
+ 199:esp/esp.c     **** 		if (p >= size) {
+ 791               		.loc 1 199 0
+ 792 036c 8091 0000 		lds r24,size
+ 793               	.LVL54:
+ 794 0370 E817      		cp r30,r24
+ 795 0372 00F0      		brlo .L24
+ 796               	.LVL55:
+ 797               	.L41:
+ 200:esp/esp.c     **** 			// done SEND data !
+ 201:esp/esp.c     **** 
+ 202:esp/esp.c     **** 			buffer[p] = 0;
+ 798               		.loc 1 202 0
+ 799 0374 F0E0      		ldi r31,0
+ 800 0376 E050      		subi r30,lo8(-(buffer))
+ 801 0378 F040      		sbci r31,hi8(-(buffer))
+ 802 037a 1082      		st Z,__zero_reg__
+ 203:esp/esp.c     **** 			esp_state = waiting_for_executoion;
+ 803               		.loc 1 203 0
+ 804 037c 84E0      		ldi r24,lo8(4)
+ 805 037e 8093 0000 		sts esp_state,r24
+ 806               	.L42:
+ 204:esp/esp.c     **** 			p = 0;
+ 807               		.loc 1 204 0
+ 808 0382 1092 0000 		sts p,__zero_reg__
+ 809               	.L24:
+ 810               	/* epilogue start */
+ 205:esp/esp.c     **** 
+ 206:esp/esp.c     **** 		}
+ 207:esp/esp.c     **** 
+ 208:esp/esp.c     **** 		break;
+ 209:esp/esp.c     **** 	default:
+ 210:esp/esp.c     **** 		//--------------------------------------------------------
+ 211:esp/esp.c     **** 		break;
+ 212:esp/esp.c     **** 	}
+ 213:esp/esp.c     **** 
+ 214:esp/esp.c     **** }
+ 811               		.loc 1 214 0
+ 812 0386 0F90      		pop __tmp_reg__
+ 813 0388 DF91      		pop r29
+ 814 038a CF91      		pop r28
+ 815 038c 1F91      		pop r17
+ 816 038e 0F91      		pop r16
+ 817 0390 0895      		ret
+ 818               		.cfi_endproc
+ 819               	.LFE10:
+ 821               		.local	esp_state
+ 822               		.comm	esp_state,1,1
+ 823               		.local	size
+ 824               		.comm	size,1,1
+ 825               		.local	id
+ 826               		.comm	id,1,1
+ 827               		.local	p
+ 828               		.comm	p,1,1
+ 829               		.comm	buffer,101,1
+ 830               	.Letext0:
+ 831               		.file 2 "/usr/lib/avr/include/stdint.h"
+ 832               		.file 3 "/usr/lib/gcc/avr/4.8.2/include/stdarg.h"
+ 833               		.file 4 "/usr/lib/avr/include/stdio.h"
+ 834               		.file 5 "/usr/lib/avr/include/string.h"
+ 835               		.file 6 "./uart/uart.h"
+ 836               		.file 7 "/usr/lib/avr/include/stdlib.h"
+ 837               		.file 8 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 esp.c
+     /tmp/ccMlW6Ga.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccMlW6Ga.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccMlW6Ga.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccMlW6Ga.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccMlW6Ga.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccMlW6Ga.s:12     .text:0000000000000000 find_first
+     /tmp/ccMlW6Ga.s:71     .text:0000000000000032 esp_debug
+     /tmp/ccMlW6Ga.s:824    .bss:0000000000000002 id
+     /tmp/ccMlW6Ga.s:169    .text:00000000000000a4 esp_send
+     /tmp/ccMlW6Ga.s:257    .text:00000000000000fe esp_sendf
+     /tmp/ccMlW6Ga.s:366    .text:0000000000000174 esp_debugf
+     /tmp/ccMlW6Ga.s:541    .text:0000000000000256 esp_isMsgToExe
+                             .bss:0000000000000000 esp_state
+     /tmp/ccMlW6Ga.s:563    .text:0000000000000264 esp_done
+     /tmp/ccMlW6Ga.s:579    .text:000000000000026a esp_getMsg
+                            *COM*:0000000000000065 buffer
+     /tmp/ccMlW6Ga.s:596    .text:0000000000000270 esp_getMsg_done
+     /tmp/ccMlW6Ga.s:622    .text:000000000000027c onChar
+     /tmp/ccMlW6Ga.s:826    .bss:0000000000000003 p
+     /tmp/ccMlW6Ga.s:822    .bss:0000000000000001 size
+
+UNDEFINED SYMBOLS
+sprintf
+send
+strcpy
+vsprintf
+strcat
+atoi
+__do_copy_data
+__do_clear_bss

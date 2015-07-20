@@ -1,0 +1,136 @@
+   1               		.file	"crc8.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	crc8
+  12               	crc8:
+  13               	.LFB0:
+  14               		.file 1 "ds1820/crc8.c"
+   1:ds1820/crc8.c **** /* please read copyright-notice at EOF */
+   2:ds1820/crc8.c **** 
+   3:ds1820/crc8.c **** #include <stdint.h>
+   4:ds1820/crc8.c **** 
+   5:ds1820/crc8.c **** #define CRC8INIT    0x00
+   6:ds1820/crc8.c **** #define CRC8POLY    0x18              //0X18 = X^8+X^5+X^4+X^0
+   7:ds1820/crc8.c **** 
+   8:ds1820/crc8.c **** uint8_t crc8( uint8_t *data, uint16_t number_of_bytes_in_data )
+   9:ds1820/crc8.c **** {
+  15               		.loc 1 9 0
+  16               		.cfi_startproc
+  17               	.LVL0:
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  22 0000 FC01      		movw r30,r24
+  23 0002 680F      		add r22,r24
+  24 0004 791F      		adc r23,r25
+  25               	.LVL1:
+  10:ds1820/crc8.c **** 	uint8_t  crc;
+  11:ds1820/crc8.c **** 	uint16_t loop_count;
+  12:ds1820/crc8.c **** 	uint8_t  bit_counter;
+  13:ds1820/crc8.c **** 	uint8_t  b;
+  14:ds1820/crc8.c **** 	uint8_t  feedback_bit;
+  15:ds1820/crc8.c **** 	
+  16:ds1820/crc8.c **** 	crc = CRC8INIT;
+  26               		.loc 1 16 0
+  27 0006 80E0      		ldi r24,0
+  28               	.LVL2:
+  17:ds1820/crc8.c **** 
+  18:ds1820/crc8.c **** 	for (loop_count = 0; loop_count != number_of_bytes_in_data; loop_count++)
+  19:ds1820/crc8.c **** 	{
+  20:ds1820/crc8.c **** 		b = data[loop_count];
+  21:ds1820/crc8.c **** 		
+  22:ds1820/crc8.c **** 		bit_counter = 8;
+  23:ds1820/crc8.c **** 		do {
+  24:ds1820/crc8.c **** 			feedback_bit = (crc ^ b) & 0x01;
+  25:ds1820/crc8.c **** 	
+  26:ds1820/crc8.c **** 			if ( feedback_bit == 0x01 ) {
+  27:ds1820/crc8.c **** 				crc = crc ^ CRC8POLY;
+  29               		.loc 1 27 0
+  30 0008 48E1      		ldi r20,lo8(24)
+  31               	.LVL3:
+  32               	.L2:
+  18:ds1820/crc8.c **** 	for (loop_count = 0; loop_count != number_of_bytes_in_data; loop_count++)
+  33               		.loc 1 18 0 discriminator 1
+  34 000a E617      		cp r30,r22
+  35 000c F707      		cpc r31,r23
+  36 000e 01F0      		breq .L10
+  20:ds1820/crc8.c **** 		b = data[loop_count];
+  37               		.loc 1 20 0
+  38 0010 2191      		ld r18,Z+
+  39               	.LVL4:
+  40 0012 98E0      		ldi r25,lo8(8)
+  41               	.LVL5:
+  42               	.L6:
+  24:ds1820/crc8.c **** 			feedback_bit = (crc ^ b) & 0x01;
+  43               		.loc 1 24 0
+  44 0014 322F      		mov r19,r18
+  45 0016 3827      		eor r19,r24
+  46               	.LVL6:
+  26:ds1820/crc8.c **** 			if ( feedback_bit == 0x01 ) {
+  47               		.loc 1 26 0
+  48 0018 532F      		mov r21,r19
+  49 001a 5170      		andi r21,lo8(1)
+  50               	.LVL7:
+  51 001c 30FD      		sbrc r19,0
+  52               		.loc 1 27 0
+  53 001e 8427      		eor r24,r20
+  54               	.LVL8:
+  55               	.L3:
+  28:ds1820/crc8.c **** 			}
+  29:ds1820/crc8.c **** 			crc = (crc >> 1) & 0x7F;
+  56               		.loc 1 29 0
+  57 0020 8695      		lsr r24
+  58               	.LVL9:
+  30:ds1820/crc8.c **** 			if ( feedback_bit == 0x01 ) {
+  59               		.loc 1 30 0
+  60 0022 5130      		cpi r21,lo8(1)
+  61 0024 01F4      		brne .L4
+  31:ds1820/crc8.c **** 				crc = crc | 0x80;
+  62               		.loc 1 31 0
+  63 0026 8068      		ori r24,lo8(-128)
+  64               	.LVL10:
+  65               	.L4:
+  32:ds1820/crc8.c **** 			}
+  33:ds1820/crc8.c **** 		
+  34:ds1820/crc8.c **** 			b = b >> 1;
+  66               		.loc 1 34 0
+  67 0028 2695      		lsr r18
+  68               	.LVL11:
+  69 002a 9150      		subi r25,lo8(-(-1))
+  70               	.LVL12:
+  35:ds1820/crc8.c **** 			bit_counter--;
+  36:ds1820/crc8.c **** 		
+  37:ds1820/crc8.c **** 		} while (bit_counter > 0);
+  71               		.loc 1 37 0
+  72 002c 01F4      		brne .L6
+  73 002e 00C0      		rjmp .L2
+  74               	.LVL13:
+  75               	.L10:
+  76               	/* epilogue start */
+  38:ds1820/crc8.c **** 	}
+  39:ds1820/crc8.c **** 	
+  40:ds1820/crc8.c **** 	return crc;
+  41:ds1820/crc8.c **** }
+  77               		.loc 1 41 0
+  78 0030 0895      		ret
+  79               		.cfi_endproc
+  80               	.LFE0:
+  82               	.Letext0:
+  83               		.file 2 "/usr/lib/avr/include/stdint.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 crc8.c
+     /tmp/ccWrxHmo.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccWrxHmo.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccWrxHmo.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccWrxHmo.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccWrxHmo.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccWrxHmo.s:12     .text:0000000000000000 crc8
+
+NO UNDEFINED SYMBOLS

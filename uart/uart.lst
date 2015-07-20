@@ -1,0 +1,375 @@
+   1               		.file	"uart.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	__vector_18
+  12               	__vector_18:
+  13               	.LFB7:
+  14               		.file 1 "uart/uart.c"
+   1:uart/uart.c   **** #include <avr/io.h>
+   2:uart/uart.c   **** #include <util/delay.h>
+   3:uart/uart.c   **** #include <stdio.h>
+   4:uart/uart.c   **** #include <avr/interrupt.h>
+   5:uart/uart.c   **** 
+   6:uart/uart.c   **** #define BAUD 38400
+   7:uart/uart.c   **** #include <util/setbaud.h>
+   8:uart/uart.c   **** #include <string.h>
+   9:uart/uart.c   **** 
+  10:uart/uart.c   **** #include "uart.h"
+  11:uart/uart.c   **** 
+  12:uart/uart.c   **** 
+  13:uart/uart.c   **** char usart_bufor[UART_SEND_BUFFER_SIZE + 1];
+  14:uart/uart.c   **** uint8_t usart_bufor_ind = 0;
+  15:uart/uart.c   **** 
+  16:uart/uart.c   **** enum enum_state {
+  17:uart/uart.c   **** 	idle, sending
+  18:uart/uart.c   **** };
+  19:uart/uart.c   **** static enum enum_state volatile state = idle;
+  20:uart/uart.c   **** 
+  21:uart/uart.c   **** /**
+  22:uart/uart.c   ****  * interrupt generated after byte received.
+  23:uart/uart.c   ****  * received data stored in UDR
+  24:uart/uart.c   ****  * USART, RX Complete Handler
+  25:uart/uart.c   ****  */
+  26:uart/uart.c   **** ISR(USART_RX_vect) {
+  15               		.loc 1 26 0
+  16               		.cfi_startproc
+  17 0000 1F92      		push r1
+  18               	.LCFI0:
+  19               		.cfi_def_cfa_offset 3
+  20               		.cfi_offset 1, -2
+  21 0002 0F92      		push r0
+  22               	.LCFI1:
+  23               		.cfi_def_cfa_offset 4
+  24               		.cfi_offset 0, -3
+  25 0004 0FB6      		in r0,__SREG__
+  26 0006 0F92      		push r0
+  27 0008 1124      		clr __zero_reg__
+  28 000a 2F93      		push r18
+  29               	.LCFI2:
+  30               		.cfi_def_cfa_offset 5
+  31               		.cfi_offset 18, -4
+  32 000c 3F93      		push r19
+  33               	.LCFI3:
+  34               		.cfi_def_cfa_offset 6
+  35               		.cfi_offset 19, -5
+  36 000e 4F93      		push r20
+  37               	.LCFI4:
+  38               		.cfi_def_cfa_offset 7
+  39               		.cfi_offset 20, -6
+  40 0010 5F93      		push r21
+  41               	.LCFI5:
+  42               		.cfi_def_cfa_offset 8
+  43               		.cfi_offset 21, -7
+  44 0012 6F93      		push r22
+  45               	.LCFI6:
+  46               		.cfi_def_cfa_offset 9
+  47               		.cfi_offset 22, -8
+  48 0014 7F93      		push r23
+  49               	.LCFI7:
+  50               		.cfi_def_cfa_offset 10
+  51               		.cfi_offset 23, -9
+  52 0016 8F93      		push r24
+  53               	.LCFI8:
+  54               		.cfi_def_cfa_offset 11
+  55               		.cfi_offset 24, -10
+  56 0018 9F93      		push r25
+  57               	.LCFI9:
+  58               		.cfi_def_cfa_offset 12
+  59               		.cfi_offset 25, -11
+  60 001a AF93      		push r26
+  61               	.LCFI10:
+  62               		.cfi_def_cfa_offset 13
+  63               		.cfi_offset 26, -12
+  64 001c BF93      		push r27
+  65               	.LCFI11:
+  66               		.cfi_def_cfa_offset 14
+  67               		.cfi_offset 27, -13
+  68 001e EF93      		push r30
+  69               	.LCFI12:
+  70               		.cfi_def_cfa_offset 15
+  71               		.cfi_offset 30, -14
+  72 0020 FF93      		push r31
+  73               	.LCFI13:
+  74               		.cfi_def_cfa_offset 16
+  75               		.cfi_offset 31, -15
+  76               	/* prologue: Signal */
+  77               	/* frame size = 0 */
+  78               	/* stack size = 15 */
+  79               	.L__stack_usage = 15
+  27:uart/uart.c   **** 	//	interrupt generated after byte received.
+  28:uart/uart.c   **** 	//  received data stored in UDR
+  29:uart/uart.c   **** 	//--------------------------------------------------
+  30:uart/uart.c   **** 	onChar(UDR0);
+  80               		.loc 1 30 0
+  81 0022 8091 C600 		lds r24,198
+  82 0026 00D0      		rcall onChar
+  83               	.LVL0:
+  84               	/* epilogue start */
+  31:uart/uart.c   **** }
+  85               		.loc 1 31 0
+  86 0028 FF91      		pop r31
+  87 002a EF91      		pop r30
+  88 002c BF91      		pop r27
+  89 002e AF91      		pop r26
+  90 0030 9F91      		pop r25
+  91 0032 8F91      		pop r24
+  92 0034 7F91      		pop r23
+  93 0036 6F91      		pop r22
+  94 0038 5F91      		pop r21
+  95 003a 4F91      		pop r20
+  96 003c 3F91      		pop r19
+  97 003e 2F91      		pop r18
+  98 0040 0F90      		pop r0
+  99 0042 0FBE      		out __SREG__,r0
+ 100 0044 0F90      		pop r0
+ 101 0046 1F90      		pop r1
+ 102 0048 1895      		reti
+ 103               		.cfi_endproc
+ 104               	.LFE7:
+ 106               	.global	__vector_19
+ 108               	__vector_19:
+ 109               	.LFB8:
+  32:uart/uart.c   **** 
+  33:uart/uart.c   **** /**
+  34:uart/uart.c   ****  * interrupt generated when output buffer is empty
+  35:uart/uart.c   ****  * USART, UDR Empty Handle
+  36:uart/uart.c   ****  */
+  37:uart/uart.c   **** ISR(USART_UDRE_vect) {
+ 110               		.loc 1 37 0
+ 111               		.cfi_startproc
+ 112 004a 1F92      		push r1
+ 113               	.LCFI14:
+ 114               		.cfi_def_cfa_offset 3
+ 115               		.cfi_offset 1, -2
+ 116 004c 0F92      		push r0
+ 117               	.LCFI15:
+ 118               		.cfi_def_cfa_offset 4
+ 119               		.cfi_offset 0, -3
+ 120 004e 0FB6      		in r0,__SREG__
+ 121 0050 0F92      		push r0
+ 122 0052 1124      		clr __zero_reg__
+ 123 0054 8F93      		push r24
+ 124               	.LCFI16:
+ 125               		.cfi_def_cfa_offset 5
+ 126               		.cfi_offset 24, -4
+ 127 0056 9F93      		push r25
+ 128               	.LCFI17:
+ 129               		.cfi_def_cfa_offset 6
+ 130               		.cfi_offset 25, -5
+ 131 0058 EF93      		push r30
+ 132               	.LCFI18:
+ 133               		.cfi_def_cfa_offset 7
+ 134               		.cfi_offset 30, -6
+ 135 005a FF93      		push r31
+ 136               	.LCFI19:
+ 137               		.cfi_def_cfa_offset 8
+ 138               		.cfi_offset 31, -7
+ 139               	/* prologue: Signal */
+ 140               	/* frame size = 0 */
+ 141               	/* stack size = 7 */
+ 142               	.L__stack_usage = 7
+  38:uart/uart.c   **** 
+  39:uart/uart.c   **** 	// interrupt generated when output buffer is empty
+  40:uart/uart.c   **** 	//--------------------------------------------------
+  41:uart/uart.c   **** 	if (usart_bufor[usart_bufor_ind] != 0) {	// check if not end of string
+ 143               		.loc 1 41 0
+ 144 005c 9091 0000 		lds r25,usart_bufor_ind
+ 145 0060 E92F      		mov r30,r25
+ 146 0062 F0E0      		ldi r31,0
+ 147 0064 E050      		subi r30,lo8(-(usart_bufor))
+ 148 0066 F040      		sbci r31,hi8(-(usart_bufor))
+ 149 0068 8081      		ld r24,Z
+ 150 006a 8823      		tst r24
+ 151 006c 01F0      		breq .L3
+  42:uart/uart.c   **** 		UDR0 = usart_bufor[usart_bufor_ind++];	// send next char
+ 152               		.loc 1 42 0
+ 153 006e 9F5F      		subi r25,lo8(-(1))
+ 154 0070 9093 0000 		sts usart_bufor_ind,r25
+ 155 0074 8093 C600 		sts 198,r24
+ 156 0078 00C0      		rjmp .L2
+ 157               	.L3:
+  43:uart/uart.c   **** 	} else {									// if end of string
+  44:uart/uart.c   **** 		state = idle;
+ 158               		.loc 1 44 0
+ 159 007a 1092 0000 		sts state,__zero_reg__
+  45:uart/uart.c   **** 		UCSR0B &= ~(1 << UDRIE0); 				// disable UDRE interrupt
+ 160               		.loc 1 45 0
+ 161 007e 8091 C100 		lds r24,193
+ 162 0082 8F7D      		andi r24,lo8(-33)
+ 163 0084 8093 C100 		sts 193,r24
+ 164               	.L2:
+ 165               	/* epilogue start */
+  46:uart/uart.c   **** 	}
+  47:uart/uart.c   **** }
+ 166               		.loc 1 47 0
+ 167 0088 FF91      		pop r31
+ 168 008a EF91      		pop r30
+ 169 008c 9F91      		pop r25
+ 170 008e 8F91      		pop r24
+ 171 0090 0F90      		pop r0
+ 172 0092 0FBE      		out __SREG__,r0
+ 173 0094 0F90      		pop r0
+ 174 0096 1F90      		pop r1
+ 175 0098 1895      		reti
+ 176               		.cfi_endproc
+ 177               	.LFE8:
+ 179               		.section	.rodata.str1.1,"aMS",@progbits,1
+ 180               	.LC0:
+ 181 0000 0D0A 00   		.string	"\r\n"
+ 182               		.text
+ 183               	.global	send
+ 185               	send:
+ 186               	.LFB9:
+  48:uart/uart.c   **** 
+  49:uart/uart.c   **** /**
+  50:uart/uart.c   ****  * data as a string
+  51:uart/uart.c   ****  */
+  52:uart/uart.c   **** void send(char *string) {
+ 187               		.loc 1 52 0
+ 188               		.cfi_startproc
+ 189               	/* prologue: function */
+ 190               	/* frame size = 0 */
+ 191               	/* stack size = 0 */
+ 192               	.L__stack_usage = 0
+ 193               	.LVL1:
+ 194               	.L7:
+  53:uart/uart.c   **** 
+  54:uart/uart.c   **** 	/*
+  55:uart/uart.c   **** 	 * 	The UDREn Flag indicates if the transmit buffer (UDRn) is ready to receive new data. If UDREn
+  56:uart/uart.c   **** 	 * 	is one, the buffer is empty, and therefore ready to be written. The UDREn Flag can generate a
+  57:uart/uart.c   **** 	 * 	Data Register Empty interrupt (see description of the UDRIE bit). UDREn is set after a reset t
+  58:uart/uart.c   **** 	 * 	indicate that the Transmitter is ready.
+  59:uart/uart.c   **** 	 */
+  60:uart/uart.c   **** 
+  61:uart/uart.c   **** 	while (!(UCSR0A & (1 << UDRE0)) || state != idle)
+ 195               		.loc 1 61 0 discriminator 1
+ 196 009a 2091 C000 		lds r18,192
+ 197 009e 25FF      		sbrs r18,5
+ 198 00a0 00C0      		rjmp .L7
+ 199               		.loc 1 61 0 is_stmt 0 discriminator 2
+ 200 00a2 2091 0000 		lds r18,state
+ 201 00a6 2111      		cpse r18,__zero_reg__
+ 202 00a8 00C0      		rjmp .L7
+  62:uart/uart.c   **** 		;
+  63:uart/uart.c   **** 
+  64:uart/uart.c   **** 	state = sending;
+ 203               		.loc 1 64 0 is_stmt 1
+ 204 00aa 21E0      		ldi r18,lo8(1)
+ 205 00ac 2093 0000 		sts state,r18
+  65:uart/uart.c   **** 	usart_bufor_ind = 0;						// copy data to buffer
+ 206               		.loc 1 65 0
+ 207 00b0 1092 0000 		sts usart_bufor_ind,__zero_reg__
+  66:uart/uart.c   **** 	strcpy(usart_bufor, string);
+ 208               		.loc 1 66 0
+ 209 00b4 BC01      		movw r22,r24
+ 210 00b6 80E0      		ldi r24,lo8(usart_bufor)
+ 211 00b8 90E0      		ldi r25,hi8(usart_bufor)
+ 212               	.LVL2:
+ 213 00ba 00D0      		rcall strcpy
+ 214               	.LVL3:
+  67:uart/uart.c   **** 	strcat(usart_bufor, "\r\n");
+ 215               		.loc 1 67 0
+ 216 00bc 60E0      		ldi r22,lo8(.LC0)
+ 217 00be 70E0      		ldi r23,hi8(.LC0)
+ 218 00c0 80E0      		ldi r24,lo8(usart_bufor)
+ 219 00c2 90E0      		ldi r25,hi8(usart_bufor)
+ 220 00c4 00D0      		rcall strcat
+ 221               	.LVL4:
+  68:uart/uart.c   **** 	UCSR0B |= (1 << UDRIE0); 					// enable empty buffer interrupt
+ 222               		.loc 1 68 0
+ 223 00c6 8091 C100 		lds r24,193
+ 224 00ca 8062      		ori r24,lo8(32)
+ 225 00cc 8093 C100 		sts 193,r24
+ 226 00d0 0895      		ret
+ 227               		.cfi_endproc
+ 228               	.LFE9:
+ 230               	.global	init_uart
+ 232               	init_uart:
+ 233               	.LFB10:
+  69:uart/uart.c   **** 
+  70:uart/uart.c   **** }
+  71:uart/uart.c   **** 
+  72:uart/uart.c   **** void init_uart(void) {
+ 234               		.loc 1 72 0
+ 235               		.cfi_startproc
+ 236               	/* prologue: function */
+ 237               	/* frame size = 0 */
+ 238               	/* stack size = 0 */
+ 239               	.L__stack_usage = 0
+  73:uart/uart.c   **** 
+  74:uart/uart.c   **** 	// set computed value by util/setbaud.h
+  75:uart/uart.c   **** 	UBRR0H = UBRRH_VALUE;
+ 240               		.loc 1 75 0
+ 241 00d2 1092 C500 		sts 197,__zero_reg__
+  76:uart/uart.c   **** 	UBRR0L = UBRRL_VALUE;
+ 242               		.loc 1 76 0
+ 243 00d6 8CE0      		ldi r24,lo8(12)
+ 244 00d8 8093 C400 		sts 196,r24
+  77:uart/uart.c   **** #if USE_2X
+  78:uart/uart.c   **** 	UCSR0A |= (1<<U2X0);
+  79:uart/uart.c   **** #else
+  80:uart/uart.c   **** 	UCSR0A &= ~(1 << U2X0);
+ 245               		.loc 1 80 0
+ 246 00dc E0EC      		ldi r30,lo8(-64)
+ 247 00de F0E0      		ldi r31,0
+ 248 00e0 8081      		ld r24,Z
+ 249 00e2 8D7F      		andi r24,lo8(-3)
+ 250 00e4 8083      		st Z,r24
+  81:uart/uart.c   **** #endif
+  82:uart/uart.c   **** 
+  83:uart/uart.c   **** 	//U W A G A !!!
+  84:uart/uart.c   **** 	//W ATmega8, aby zapisać do rejestru UCSRC należy ustawiać bit URSEL
+  85:uart/uart.c   **** 	//zobacz także: http://mikrokontrolery.blogspot.com/2011/04/avr-czyhajace-pulapki.html#avr_pulapk
+  86:uart/uart.c   **** 	UCSR0C = /* (1<<URSEL) | */(1 << UCSZ01) | (1 << UCSZ00);  	//bitów danych: 8
+ 251               		.loc 1 86 0
+ 252 00e6 86E0      		ldi r24,lo8(6)
+ 253 00e8 8093 C200 		sts 194,r24
+  87:uart/uart.c   **** 																//bity stopu:  1
+  88:uart/uart.c   **** 																//parzystość:  brak
+  89:uart/uart.c   **** 
+  90:uart/uart.c   **** 	UCSR0B = (1 << TXEN0) | (1 << RXEN0) | (1 << RXCIE0);
+ 254               		.loc 1 90 0
+ 255 00ec 88E9      		ldi r24,lo8(-104)
+ 256 00ee 8093 C100 		sts 193,r24
+ 257 00f2 0895      		ret
+ 258               		.cfi_endproc
+ 259               	.LFE10:
+ 261               		.local	state
+ 262               		.comm	state,1,1
+ 263               	.global	usart_bufor_ind
+ 264               		.section .bss
+ 267               	usart_bufor_ind:
+ 268 0000 00        		.zero	1
+ 269               		.comm	usart_bufor,101,1
+ 270               		.text
+ 271               	.Letext0:
+ 272               		.file 2 "uart/uart.h"
+ 273               		.file 3 "/usr/lib/avr/include/string.h"
+ 274               		.file 4 "/usr/lib/avr/include/stdint.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 uart.c
+     /tmp/ccaRlkFg.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccaRlkFg.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccaRlkFg.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccaRlkFg.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccaRlkFg.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccaRlkFg.s:12     .text:0000000000000000 __vector_18
+     /tmp/ccaRlkFg.s:108    .text:000000000000004a __vector_19
+     /tmp/ccaRlkFg.s:267    .bss:0000000000000000 usart_bufor_ind
+                            *COM*:0000000000000065 usart_bufor
+                             .bss:0000000000000001 state
+     /tmp/ccaRlkFg.s:185    .text:000000000000009a send
+     /tmp/ccaRlkFg.s:232    .text:00000000000000d2 init_uart
+
+UNDEFINED SYMBOLS
+onChar
+strcpy
+strcat
+__do_copy_data
+__do_clear_bss

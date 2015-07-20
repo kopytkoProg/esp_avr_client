@@ -1,0 +1,1251 @@
+   1               		.file	"onewire.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	ow_input_pin_state
+  12               	ow_input_pin_state:
+  13               	.LFB11:
+  14               		.file 1 "ds1820/onewire.c"
+   1:ds1820/onewire.c **** /* 
+   2:ds1820/onewire.c **** Access Dallas 1-Wire Devices with ATMEL AVRs
+   3:ds1820/onewire.c **** Author of the initial code: Peter Dannegger (danni(at)specs.de)
+   4:ds1820/onewire.c **** modified by Martin Thomas (mthomas(at)rhrk.uni-kl.de)
+   5:ds1820/onewire.c ****  9/2004 - use of delay.h, optional bus configuration at runtime
+   6:ds1820/onewire.c **** 10/2009 - additional delay in ow_bit_io for recovery
+   7:ds1820/onewire.c ****  5/2010 - timing modifcations, additonal config-values and comments,
+   8:ds1820/onewire.c ****           use of atomic.h macros, internal pull-up support
+   9:ds1820/onewire.c ****  7/2010 - added method to skip recovery time after last bit transfered
+  10:ds1820/onewire.c ****           via ow_command_skip_last_recovery
+  11:ds1820/onewire.c **** */
+  12:ds1820/onewire.c **** 
+  13:ds1820/onewire.c **** 
+  14:ds1820/onewire.c **** #include <avr/io.h>
+  15:ds1820/onewire.c **** #include <util/delay.h>
+  16:ds1820/onewire.c **** #include <util/atomic.h>
+  17:ds1820/onewire.c **** 
+  18:ds1820/onewire.c **** #include "onewire.h"
+  19:ds1820/onewire.c **** 
+  20:ds1820/onewire.c **** #ifdef OW_ONE_BUS
+  21:ds1820/onewire.c **** 
+  22:ds1820/onewire.c **** #define OW_GET_IN()   ( OW_IN & (1<<OW_PIN))
+  23:ds1820/onewire.c **** #define OW_OUT_LOW()  ( OW_OUT &= (~(1 << OW_PIN)) )
+  24:ds1820/onewire.c **** #define OW_OUT_HIGH() ( OW_OUT |= (1 << OW_PIN) )
+  25:ds1820/onewire.c **** #define OW_DIR_IN()   ( OW_DDR &= (~(1 << OW_PIN )) )
+  26:ds1820/onewire.c **** #define OW_DIR_OUT()  ( OW_DDR |= (1 << OW_PIN) )
+  27:ds1820/onewire.c **** 
+  28:ds1820/onewire.c **** #else
+  29:ds1820/onewire.c **** 
+  30:ds1820/onewire.c **** /* set bus-config with ow_set_bus() */
+  31:ds1820/onewire.c **** uint8_t OW_PIN_MASK; 
+  32:ds1820/onewire.c **** volatile uint8_t* OW_IN;
+  33:ds1820/onewire.c **** volatile uint8_t* OW_OUT;
+  34:ds1820/onewire.c **** volatile uint8_t* OW_DDR;
+  35:ds1820/onewire.c **** 
+  36:ds1820/onewire.c **** #define OW_GET_IN()   ( *OW_IN & OW_PIN_MASK )
+  37:ds1820/onewire.c **** #define OW_OUT_LOW()  ( *OW_OUT &= (uint8_t) ~OW_PIN_MASK )
+  38:ds1820/onewire.c **** #define OW_OUT_HIGH() ( *OW_OUT |= (uint8_t)  OW_PIN_MASK )
+  39:ds1820/onewire.c **** #define OW_DIR_IN()   ( *OW_DDR &= (uint8_t) ~OW_PIN_MASK )
+  40:ds1820/onewire.c **** #define OW_DIR_OUT()  ( *OW_DDR |= (uint8_t)  OW_PIN_MASK )
+  41:ds1820/onewire.c **** 
+  42:ds1820/onewire.c **** void ow_set_bus(volatile uint8_t* in,
+  43:ds1820/onewire.c **** 	volatile uint8_t* out,
+  44:ds1820/onewire.c **** 	volatile uint8_t* ddr,
+  45:ds1820/onewire.c **** 	uint8_t pin)
+  46:ds1820/onewire.c **** {
+  47:ds1820/onewire.c **** 	OW_DDR=ddr;
+  48:ds1820/onewire.c **** 	OW_OUT=out;
+  49:ds1820/onewire.c **** 	OW_IN=in;
+  50:ds1820/onewire.c **** 	OW_PIN_MASK = (1 << pin);
+  51:ds1820/onewire.c **** 	ow_reset();
+  52:ds1820/onewire.c **** }
+  53:ds1820/onewire.c **** 
+  54:ds1820/onewire.c **** #endif
+  55:ds1820/onewire.c **** 
+  56:ds1820/onewire.c **** uint8_t ow_input_pin_state()
+  57:ds1820/onewire.c **** {
+  15               		.loc 1 57 0
+  16               		.cfi_startproc
+  17               	/* prologue: function */
+  18               	/* frame size = 0 */
+  19               	/* stack size = 0 */
+  20               	.L__stack_usage = 0
+  58:ds1820/onewire.c **** 	return OW_GET_IN();
+  21               		.loc 1 58 0
+  22 0000 86B1      		in r24,0x6
+  59:ds1820/onewire.c **** }
+  23               		.loc 1 59 0
+  24 0002 8170      		andi r24,lo8(1)
+  25 0004 0895      		ret
+  26               		.cfi_endproc
+  27               	.LFE11:
+  29               	.global	ow_parasite_enable
+  31               	ow_parasite_enable:
+  32               	.LFB12:
+  60:ds1820/onewire.c **** 
+  61:ds1820/onewire.c **** void ow_parasite_enable(void)
+  62:ds1820/onewire.c **** {
+  33               		.loc 1 62 0
+  34               		.cfi_startproc
+  35               	/* prologue: function */
+  36               	/* frame size = 0 */
+  37               	/* stack size = 0 */
+  38               	.L__stack_usage = 0
+  63:ds1820/onewire.c **** 	OW_OUT_HIGH();
+  39               		.loc 1 63 0
+  40 0006 409A      		sbi 0x8,0
+  64:ds1820/onewire.c **** 	OW_DIR_OUT();
+  41               		.loc 1 64 0
+  42 0008 389A      		sbi 0x7,0
+  43 000a 0895      		ret
+  44               		.cfi_endproc
+  45               	.LFE12:
+  48               	ow_bit_io_intern:
+  49               	.LFB15:
+  65:ds1820/onewire.c **** }
+  66:ds1820/onewire.c **** 
+  67:ds1820/onewire.c **** void ow_parasite_disable(void)
+  68:ds1820/onewire.c **** {
+  69:ds1820/onewire.c **** 	OW_DIR_IN();
+  70:ds1820/onewire.c **** #if (!OW_USE_INTERNAL_PULLUP)
+  71:ds1820/onewire.c **** 	OW_OUT_LOW();
+  72:ds1820/onewire.c **** #endif
+  73:ds1820/onewire.c **** }
+  74:ds1820/onewire.c **** 
+  75:ds1820/onewire.c **** 
+  76:ds1820/onewire.c **** uint8_t ow_reset(void)
+  77:ds1820/onewire.c **** {
+  78:ds1820/onewire.c **** 	uint8_t err;
+  79:ds1820/onewire.c **** 	
+  80:ds1820/onewire.c **** 	OW_OUT_LOW();
+  81:ds1820/onewire.c **** 	OW_DIR_OUT();            // pull OW-Pin low for 480us
+  82:ds1820/onewire.c **** 	_delay_us(480);
+  83:ds1820/onewire.c **** 
+  84:ds1820/onewire.c **** 	//ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  85:ds1820/onewire.c **** 	{
+  86:ds1820/onewire.c **** 		// set Pin as input - wait for clients to pull low
+  87:ds1820/onewire.c **** 		OW_DIR_IN(); // input
+  88:ds1820/onewire.c **** #if OW_USE_INTERNAL_PULLUP
+  89:ds1820/onewire.c **** 		OW_OUT_HIGH();
+  90:ds1820/onewire.c **** #endif
+  91:ds1820/onewire.c **** 	
+  92:ds1820/onewire.c **** 		_delay_us(64);       // was 66
+  93:ds1820/onewire.c **** 		err = OW_GET_IN();   // no presence detect
+  94:ds1820/onewire.c **** 		                     // if err!=0: nobody pulled to low, still high
+  95:ds1820/onewire.c **** 	}
+  96:ds1820/onewire.c **** 	
+  97:ds1820/onewire.c **** 	// after a delay the clients should release the line
+  98:ds1820/onewire.c **** 	// and input-pin gets back to high by pull-up-resistor
+  99:ds1820/onewire.c **** 	_delay_us(480 - 64);       // was 480-66
+ 100:ds1820/onewire.c **** 	if( OW_GET_IN() == 0 ) {
+ 101:ds1820/onewire.c **** 		err = 1;             // short circuit, expected low but got high
+ 102:ds1820/onewire.c **** 	}
+ 103:ds1820/onewire.c **** 	
+ 104:ds1820/onewire.c **** 	return err;
+ 105:ds1820/onewire.c **** }
+ 106:ds1820/onewire.c **** 
+ 107:ds1820/onewire.c **** 
+ 108:ds1820/onewire.c **** /* Timing issue when using runtime-bus-selection (!OW_ONE_BUS):
+ 109:ds1820/onewire.c ****    The master should sample at the end of the 15-slot after initiating
+ 110:ds1820/onewire.c ****    the read-time-slot. The variable bus-settings need more
+ 111:ds1820/onewire.c ****    cycles than the constant ones so the delays had to be shortened 
+ 112:ds1820/onewire.c ****    to achive a 15uS overall delay 
+ 113:ds1820/onewire.c ****    Setting/clearing a bit in I/O Register needs 1 cyle in OW_ONE_BUS
+ 114:ds1820/onewire.c ****    but around 14 cyles in configureable bus (us-Delay is 4 cyles per uS) */
+ 115:ds1820/onewire.c **** static uint8_t ow_bit_io_intern( uint8_t b, uint8_t with_parasite_enable )
+ 116:ds1820/onewire.c **** {
+  50               		.loc 1 116 0
+  51               		.cfi_startproc
+  52               	.LVL0:
+  53 000c CF93      		push r28
+  54               	.LCFI0:
+  55               		.cfi_def_cfa_offset 3
+  56               		.cfi_offset 28, -2
+  57 000e DF93      		push r29
+  58               	.LCFI1:
+  59               		.cfi_def_cfa_offset 4
+  60               		.cfi_offset 29, -3
+  61 0010 1F92      		push __zero_reg__
+  62               	.LCFI2:
+  63               		.cfi_def_cfa_offset 5
+  64 0012 CDB7      		in r28,__SP_L__
+  65 0014 DEB7      		in r29,__SP_H__
+  66               	.LCFI3:
+  67               		.cfi_def_cfa_register 28
+  68               	/* prologue: function */
+  69               	/* frame size = 1 */
+  70               	/* stack size = 3 */
+  71               	.L__stack_usage = 3
+ 117:ds1820/onewire.c **** 	//ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+ 118:ds1820/onewire.c **** 	{
+ 119:ds1820/onewire.c **** #if OW_USE_INTERNAL_PULLUP
+ 120:ds1820/onewire.c **** 		OW_OUT_LOW();
+ 121:ds1820/onewire.c **** #endif
+ 122:ds1820/onewire.c **** 		OW_DIR_OUT();    // drive bus low
+  72               		.loc 1 122 0
+  73 0016 389A      		sbi 0x7,0
+  74               	.LVL1:
+  75               	.LBB16:
+  76               	.LBB17:
+  77               		.file 2 "/usr/lib/avr/include/util/delay.h"
+   1:/usr/lib/avr/include/util/delay.h **** /* Copyright (c) 2002, Marek Michalkiewicz
+   2:/usr/lib/avr/include/util/delay.h ****    Copyright (c) 2004,2005,2007 Joerg Wunsch
+   3:/usr/lib/avr/include/util/delay.h ****    Copyright (c) 2007  Florin-Viorel Petrov
+   4:/usr/lib/avr/include/util/delay.h ****    All rights reserved.
+   5:/usr/lib/avr/include/util/delay.h **** 
+   6:/usr/lib/avr/include/util/delay.h ****    Redistribution and use in source and binary forms, with or without
+   7:/usr/lib/avr/include/util/delay.h ****    modification, are permitted provided that the following conditions are met:
+   8:/usr/lib/avr/include/util/delay.h **** 
+   9:/usr/lib/avr/include/util/delay.h ****    * Redistributions of source code must retain the above copyright
+  10:/usr/lib/avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer.
+  11:/usr/lib/avr/include/util/delay.h **** 
+  12:/usr/lib/avr/include/util/delay.h ****    * Redistributions in binary form must reproduce the above copyright
+  13:/usr/lib/avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer in
+  14:/usr/lib/avr/include/util/delay.h ****      the documentation and/or other materials provided with the
+  15:/usr/lib/avr/include/util/delay.h ****      distribution.
+  16:/usr/lib/avr/include/util/delay.h **** 
+  17:/usr/lib/avr/include/util/delay.h ****    * Neither the name of the copyright holders nor the names of
+  18:/usr/lib/avr/include/util/delay.h ****      contributors may be used to endorse or promote products derived
+  19:/usr/lib/avr/include/util/delay.h ****      from this software without specific prior written permission.
+  20:/usr/lib/avr/include/util/delay.h **** 
+  21:/usr/lib/avr/include/util/delay.h ****   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  22:/usr/lib/avr/include/util/delay.h ****   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  23:/usr/lib/avr/include/util/delay.h ****   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  24:/usr/lib/avr/include/util/delay.h ****   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  25:/usr/lib/avr/include/util/delay.h ****   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  26:/usr/lib/avr/include/util/delay.h ****   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  27:/usr/lib/avr/include/util/delay.h ****   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:/usr/lib/avr/include/util/delay.h ****   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:/usr/lib/avr/include/util/delay.h ****   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  30:/usr/lib/avr/include/util/delay.h ****   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  31:/usr/lib/avr/include/util/delay.h ****   POSSIBILITY OF SUCH DAMAGE. */
+  32:/usr/lib/avr/include/util/delay.h **** 
+  33:/usr/lib/avr/include/util/delay.h **** /* $Id: delay.h.in 2251 2011-09-14 08:20:33Z joerg_wunsch $ */
+  34:/usr/lib/avr/include/util/delay.h **** 
+  35:/usr/lib/avr/include/util/delay.h **** #ifndef _UTIL_DELAY_H_
+  36:/usr/lib/avr/include/util/delay.h **** #define _UTIL_DELAY_H_ 1
+  37:/usr/lib/avr/include/util/delay.h **** 
+  38:/usr/lib/avr/include/util/delay.h **** #ifndef __HAS_DELAY_CYCLES
+  39:/usr/lib/avr/include/util/delay.h **** #define __HAS_DELAY_CYCLES 1
+  40:/usr/lib/avr/include/util/delay.h **** #endif
+  41:/usr/lib/avr/include/util/delay.h **** 
+  42:/usr/lib/avr/include/util/delay.h **** #include <inttypes.h>
+  43:/usr/lib/avr/include/util/delay.h **** #include <util/delay_basic.h>
+  44:/usr/lib/avr/include/util/delay.h **** #include <math.h>
+  45:/usr/lib/avr/include/util/delay.h **** 
+  46:/usr/lib/avr/include/util/delay.h **** /** \file */
+  47:/usr/lib/avr/include/util/delay.h **** /** \defgroup util_delay <util/delay.h>: Convenience functions for busy-wait delay loops
+  48:/usr/lib/avr/include/util/delay.h ****     \code
+  49:/usr/lib/avr/include/util/delay.h ****     #define F_CPU 1000000UL  // 1 MHz
+  50:/usr/lib/avr/include/util/delay.h ****     //#define F_CPU 14.7456E6
+  51:/usr/lib/avr/include/util/delay.h ****     #include <util/delay.h>
+  52:/usr/lib/avr/include/util/delay.h ****     \endcode
+  53:/usr/lib/avr/include/util/delay.h **** 
+  54:/usr/lib/avr/include/util/delay.h ****     \note As an alternative method, it is possible to pass the
+  55:/usr/lib/avr/include/util/delay.h ****     F_CPU macro down to the compiler from the Makefile.
+  56:/usr/lib/avr/include/util/delay.h ****     Obviously, in that case, no \c \#define statement should be
+  57:/usr/lib/avr/include/util/delay.h ****     used.
+  58:/usr/lib/avr/include/util/delay.h **** 
+  59:/usr/lib/avr/include/util/delay.h ****     The functions in this header file are wrappers around the basic
+  60:/usr/lib/avr/include/util/delay.h ****     busy-wait functions from <util/delay_basic.h>.  They are meant as
+  61:/usr/lib/avr/include/util/delay.h ****     convenience functions where actual time values can be specified
+  62:/usr/lib/avr/include/util/delay.h ****     rather than a number of cycles to wait for.  The idea behind is
+  63:/usr/lib/avr/include/util/delay.h ****     that compile-time constant expressions will be eliminated by
+  64:/usr/lib/avr/include/util/delay.h ****     compiler optimization so floating-point expressions can be used
+  65:/usr/lib/avr/include/util/delay.h ****     to calculate the number of delay cycles needed based on the CPU
+  66:/usr/lib/avr/include/util/delay.h ****     frequency passed by the macro F_CPU.
+  67:/usr/lib/avr/include/util/delay.h **** 
+  68:/usr/lib/avr/include/util/delay.h ****     \note In order for these functions to work as intended, compiler
+  69:/usr/lib/avr/include/util/delay.h ****     optimizations <em>must</em> be enabled, and the delay time
+  70:/usr/lib/avr/include/util/delay.h ****     <em>must</em> be an expression that is a known constant at
+  71:/usr/lib/avr/include/util/delay.h ****     compile-time.  If these requirements are not met, the resulting
+  72:/usr/lib/avr/include/util/delay.h ****     delay will be much longer (and basically unpredictable), and
+  73:/usr/lib/avr/include/util/delay.h ****     applications that otherwise do not use floating-point calculations
+  74:/usr/lib/avr/include/util/delay.h ****     will experience severe code bloat by the floating-point library
+  75:/usr/lib/avr/include/util/delay.h ****     routines linked into the application.
+  76:/usr/lib/avr/include/util/delay.h **** 
+  77:/usr/lib/avr/include/util/delay.h ****     The functions available allow the specification of microsecond, and
+  78:/usr/lib/avr/include/util/delay.h ****     millisecond delays directly, using the application-supplied macro
+  79:/usr/lib/avr/include/util/delay.h ****     F_CPU as the CPU clock frequency (in Hertz).
+  80:/usr/lib/avr/include/util/delay.h **** 
+  81:/usr/lib/avr/include/util/delay.h **** */
+  82:/usr/lib/avr/include/util/delay.h **** 
+  83:/usr/lib/avr/include/util/delay.h **** #if !defined(__DOXYGEN__)
+  84:/usr/lib/avr/include/util/delay.h **** static inline void _delay_us(double __us) __attribute__((always_inline));
+  85:/usr/lib/avr/include/util/delay.h **** static inline void _delay_ms(double __ms) __attribute__((always_inline));
+  86:/usr/lib/avr/include/util/delay.h **** #endif
+  87:/usr/lib/avr/include/util/delay.h **** 
+  88:/usr/lib/avr/include/util/delay.h **** #ifndef F_CPU
+  89:/usr/lib/avr/include/util/delay.h **** /* prevent compiler error by supplying a default */
+  90:/usr/lib/avr/include/util/delay.h **** # warning "F_CPU not defined for <util/delay.h>"
+  91:/usr/lib/avr/include/util/delay.h **** # define F_CPU 1000000UL
+  92:/usr/lib/avr/include/util/delay.h **** #endif
+  93:/usr/lib/avr/include/util/delay.h **** 
+  94:/usr/lib/avr/include/util/delay.h **** #ifndef __OPTIMIZE__
+  95:/usr/lib/avr/include/util/delay.h **** # warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+  96:/usr/lib/avr/include/util/delay.h **** #endif
+  97:/usr/lib/avr/include/util/delay.h **** 
+  98:/usr/lib/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+  99:/usr/lib/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 100:/usr/lib/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 101:/usr/lib/avr/include/util/delay.h **** #  include <math.h>
+ 102:/usr/lib/avr/include/util/delay.h **** #endif
+ 103:/usr/lib/avr/include/util/delay.h **** 
+ 104:/usr/lib/avr/include/util/delay.h **** /**
+ 105:/usr/lib/avr/include/util/delay.h ****    \ingroup util_delay
+ 106:/usr/lib/avr/include/util/delay.h **** 
+ 107:/usr/lib/avr/include/util/delay.h ****    Perform a delay of \c __ms milliseconds, using _delay_loop_2().
+ 108:/usr/lib/avr/include/util/delay.h **** 
+ 109:/usr/lib/avr/include/util/delay.h ****    The macro F_CPU is supposed to be defined to a
+ 110:/usr/lib/avr/include/util/delay.h ****    constant defining the CPU clock frequency (in Hertz).
+ 111:/usr/lib/avr/include/util/delay.h **** 
+ 112:/usr/lib/avr/include/util/delay.h ****    The maximal possible delay is 262.14 ms / F_CPU in MHz.
+ 113:/usr/lib/avr/include/util/delay.h **** 
+ 114:/usr/lib/avr/include/util/delay.h ****    When the user request delay which exceed the maximum possible one,
+ 115:/usr/lib/avr/include/util/delay.h ****    _delay_ms() provides a decreased resolution functionality. In this
+ 116:/usr/lib/avr/include/util/delay.h ****    mode _delay_ms() will work with a resolution of 1/10 ms, providing
+ 117:/usr/lib/avr/include/util/delay.h ****    delays up to 6.5535 seconds (independent from CPU frequency).  The
+ 118:/usr/lib/avr/include/util/delay.h ****    user will not be informed about decreased resolution.
+ 119:/usr/lib/avr/include/util/delay.h **** 
+ 120:/usr/lib/avr/include/util/delay.h ****    If the avr-gcc toolchain has __builtin_avr_delay_cycles(unsigned long)
+ 121:/usr/lib/avr/include/util/delay.h ****    support, maximal possible delay is 4294967.295 ms/ F_CPU in MHz. For
+ 122:/usr/lib/avr/include/util/delay.h ****    values greater than the maximal possible delay, overflows results in
+ 123:/usr/lib/avr/include/util/delay.h ****    no delay i.e., 0ms.
+ 124:/usr/lib/avr/include/util/delay.h **** 
+ 125:/usr/lib/avr/include/util/delay.h ****    Conversion of __us into clock cycles may not always result in integer.
+ 126:/usr/lib/avr/include/util/delay.h ****    By default, the clock cycles rounded up to next integer. This ensures that
+ 127:/usr/lib/avr/include/util/delay.h ****    the user gets atleast __us microseconds of delay.
+ 128:/usr/lib/avr/include/util/delay.h **** 
+ 129:/usr/lib/avr/include/util/delay.h ****    Alternatively, user can define __DELAY_ROUND_DOWN__ and __DELAY_ROUND_CLOSEST__
+ 130:/usr/lib/avr/include/util/delay.h ****    to round down and round to closest integer.
+ 131:/usr/lib/avr/include/util/delay.h **** 
+ 132:/usr/lib/avr/include/util/delay.h ****    Note: The new implementation of _delay_ms(double __ms) with 
+ 133:/usr/lib/avr/include/util/delay.h ****     __builtin_avr_delay_cycles(unsigned long) support is not backward compatible. 
+ 134:/usr/lib/avr/include/util/delay.h ****    User can define __DELAY_BACKWARD_COMPATIBLE__ to get a backward compatible delay.
+ 135:/usr/lib/avr/include/util/delay.h ****    Also, the backward compatible
+ 136:/usr/lib/avr/include/util/delay.h ****    algorithm will be chosen if the code is compiled in a <em>freestanding
+ 137:/usr/lib/avr/include/util/delay.h ****    environment</em> (GCC option \c -ffreestanding), as the math functions
+ 138:/usr/lib/avr/include/util/delay.h ****    required for rounding are not available to the compiler then.
+ 139:/usr/lib/avr/include/util/delay.h **** 
+ 140:/usr/lib/avr/include/util/delay.h ****  */
+ 141:/usr/lib/avr/include/util/delay.h **** void
+ 142:/usr/lib/avr/include/util/delay.h **** _delay_ms(double __ms)
+ 143:/usr/lib/avr/include/util/delay.h **** {
+ 144:/usr/lib/avr/include/util/delay.h **** 	uint16_t __ticks;
+ 145:/usr/lib/avr/include/util/delay.h **** 	double __tmp ; 
+ 146:/usr/lib/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 147:/usr/lib/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 148:/usr/lib/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 149:/usr/lib/avr/include/util/delay.h **** 	uint32_t __ticks_dc;
+ 150:/usr/lib/avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 151:/usr/lib/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e3) * __ms;
+ 152:/usr/lib/avr/include/util/delay.h **** 
+ 153:/usr/lib/avr/include/util/delay.h **** 	#if defined(__DELAY_ROUND_DOWN__)
+ 154:/usr/lib/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)fabs(__tmp);
+ 155:/usr/lib/avr/include/util/delay.h **** 
+ 156:/usr/lib/avr/include/util/delay.h **** 	#elif defined(__DELAY_ROUND_CLOSEST__)
+ 157:/usr/lib/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(fabs(__tmp)+0.5);
+ 158:/usr/lib/avr/include/util/delay.h **** 
+ 159:/usr/lib/avr/include/util/delay.h **** 	#else
+ 160:/usr/lib/avr/include/util/delay.h **** 		//round up by default
+ 161:/usr/lib/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+ 162:/usr/lib/avr/include/util/delay.h **** 	#endif
+ 163:/usr/lib/avr/include/util/delay.h **** 
+ 164:/usr/lib/avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 165:/usr/lib/avr/include/util/delay.h **** 
+ 166:/usr/lib/avr/include/util/delay.h **** #else
+ 167:/usr/lib/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 4e3) * __ms;
+ 168:/usr/lib/avr/include/util/delay.h **** 	if (__tmp < 1.0)
+ 169:/usr/lib/avr/include/util/delay.h **** 		__ticks = 1;
+ 170:/usr/lib/avr/include/util/delay.h **** 	else if (__tmp > 65535)
+ 171:/usr/lib/avr/include/util/delay.h **** 	{
+ 172:/usr/lib/avr/include/util/delay.h **** 		//	__ticks = requested delay in 1/10 ms
+ 173:/usr/lib/avr/include/util/delay.h **** 		__ticks = (uint16_t) (__ms * 10.0);
+ 174:/usr/lib/avr/include/util/delay.h **** 		while(__ticks)
+ 175:/usr/lib/avr/include/util/delay.h **** 		{
+ 176:/usr/lib/avr/include/util/delay.h **** 			// wait 1/10 ms
+ 177:/usr/lib/avr/include/util/delay.h **** 			_delay_loop_2(((F_CPU) / 4e3) / 10);
+ 178:/usr/lib/avr/include/util/delay.h **** 			__ticks --;
+ 179:/usr/lib/avr/include/util/delay.h **** 		}
+ 180:/usr/lib/avr/include/util/delay.h **** 		return;
+ 181:/usr/lib/avr/include/util/delay.h **** 	}
+ 182:/usr/lib/avr/include/util/delay.h **** 	else
+ 183:/usr/lib/avr/include/util/delay.h **** 		__ticks = (uint16_t)__tmp;
+ 184:/usr/lib/avr/include/util/delay.h **** 	_delay_loop_2(__ticks);
+ 185:/usr/lib/avr/include/util/delay.h **** #endif
+ 186:/usr/lib/avr/include/util/delay.h **** }
+ 187:/usr/lib/avr/include/util/delay.h **** 
+ 188:/usr/lib/avr/include/util/delay.h **** /**
+ 189:/usr/lib/avr/include/util/delay.h ****    \ingroup util_delay
+ 190:/usr/lib/avr/include/util/delay.h **** 
+ 191:/usr/lib/avr/include/util/delay.h ****    Perform a delay of \c __us microseconds, using _delay_loop_1().
+ 192:/usr/lib/avr/include/util/delay.h **** 
+ 193:/usr/lib/avr/include/util/delay.h ****    The macro F_CPU is supposed to be defined to a
+ 194:/usr/lib/avr/include/util/delay.h ****    constant defining the CPU clock frequency (in Hertz).
+ 195:/usr/lib/avr/include/util/delay.h **** 
+ 196:/usr/lib/avr/include/util/delay.h ****    The maximal possible delay is 768 us / F_CPU in MHz.
+ 197:/usr/lib/avr/include/util/delay.h **** 
+ 198:/usr/lib/avr/include/util/delay.h ****    If the user requests a delay greater than the maximal possible one,
+ 199:/usr/lib/avr/include/util/delay.h ****    _delay_us() will automatically call _delay_ms() instead.  The user
+ 200:/usr/lib/avr/include/util/delay.h ****    will not be informed about this case.
+ 201:/usr/lib/avr/include/util/delay.h **** 
+ 202:/usr/lib/avr/include/util/delay.h ****    If the avr-gcc toolchain has __builtin_avr_delay_cycles(unsigned long)
+ 203:/usr/lib/avr/include/util/delay.h ****    support, maximal possible delay is 4294967.295 us/ F_CPU in MHz. For
+ 204:/usr/lib/avr/include/util/delay.h ****    values greater than the maximal possible delay, overflow results in
+ 205:/usr/lib/avr/include/util/delay.h ****    no delay i.e., 0us.
+ 206:/usr/lib/avr/include/util/delay.h ****   
+ 207:/usr/lib/avr/include/util/delay.h ****    Conversion of __us into clock cycles may not always result in integer.
+ 208:/usr/lib/avr/include/util/delay.h ****    By default, the clock cycles rounded up to next integer. This ensures that
+ 209:/usr/lib/avr/include/util/delay.h ****    the user gets atleast __us microseconds of delay.
+ 210:/usr/lib/avr/include/util/delay.h **** 
+ 211:/usr/lib/avr/include/util/delay.h ****    Alternatively, user can define __DELAY_ROUND_DOWN__ and __DELAY_ROUND_CLOSEST__
+ 212:/usr/lib/avr/include/util/delay.h ****    to round down and round to closest integer.
+ 213:/usr/lib/avr/include/util/delay.h ****  
+ 214:/usr/lib/avr/include/util/delay.h ****    Note: The new implementation of _delay_us(double __us) with 
+ 215:/usr/lib/avr/include/util/delay.h ****     __builtin_avr_delay_cycles(unsigned long) support is not backward compatible.
+ 216:/usr/lib/avr/include/util/delay.h ****    User can define __DELAY_BACKWARD_COMPATIBLE__ to get a backward compatible delay.
+ 217:/usr/lib/avr/include/util/delay.h ****    Also, the backward compatible
+ 218:/usr/lib/avr/include/util/delay.h ****    algorithm will be chosen if the code is compiled in a <em>freestanding
+ 219:/usr/lib/avr/include/util/delay.h ****    environment</em> (GCC option \c -ffreestanding), as the math functions
+ 220:/usr/lib/avr/include/util/delay.h ****    required for rounding are not available to the compiler then.
+ 221:/usr/lib/avr/include/util/delay.h **** 
+ 222:/usr/lib/avr/include/util/delay.h ****  */
+ 223:/usr/lib/avr/include/util/delay.h **** void
+ 224:/usr/lib/avr/include/util/delay.h **** _delay_us(double __us)
+ 225:/usr/lib/avr/include/util/delay.h **** {
+ 226:/usr/lib/avr/include/util/delay.h **** 	uint8_t __ticks;
+ 227:/usr/lib/avr/include/util/delay.h **** 	double __tmp ; 
+ 228:/usr/lib/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 229:/usr/lib/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 230:/usr/lib/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 231:/usr/lib/avr/include/util/delay.h **** 	uint32_t __ticks_dc;
+ 232:/usr/lib/avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 233:/usr/lib/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e6) * __us;
+ 234:/usr/lib/avr/include/util/delay.h **** 
+ 235:/usr/lib/avr/include/util/delay.h **** 	#if defined(__DELAY_ROUND_DOWN__)
+ 236:/usr/lib/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)fabs(__tmp);
+ 237:/usr/lib/avr/include/util/delay.h **** 
+ 238:/usr/lib/avr/include/util/delay.h **** 	#elif defined(__DELAY_ROUND_CLOSEST__)
+ 239:/usr/lib/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(fabs(__tmp)+0.5);
+ 240:/usr/lib/avr/include/util/delay.h **** 
+ 241:/usr/lib/avr/include/util/delay.h **** 	#else
+ 242:/usr/lib/avr/include/util/delay.h **** 		//round up by default
+ 243:/usr/lib/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+ 244:/usr/lib/avr/include/util/delay.h **** 	#endif
+ 245:/usr/lib/avr/include/util/delay.h **** 
+ 246:/usr/lib/avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+  78               		.loc 2 246 0
+  79 0018 95E0      		ldi r25,lo8(5)
+  80 001a 9A95      		1: dec r25
+  81 001c 01F4      		brne 1b
+  82 001e 0000      		nop
+  83               	.LBE17:
+  84               	.LBE16:
+ 123:ds1820/onewire.c **** 		_delay_us(2);    // T_INT > 1usec accoding to timing-diagramm
+ 124:ds1820/onewire.c **** 		if ( b ) {
+  85               		.loc 1 124 0
+  86 0020 8111      		cpse r24,__zero_reg__
+ 125:ds1820/onewire.c **** 			OW_DIR_IN(); // to write "1" release bus, resistor pulls high
+  87               		.loc 1 125 0
+  88 0022 3898      		cbi 0x7,0
+  89               	.L4:
+  90               	.LVL2:
+  91               	.LBB18:
+  92               	.LBB19:
+  93               		.loc 2 246 0
+  94 0024 E2E2      		ldi r30,lo8(34)
+  95 0026 EA95      		1: dec r30
+  96 0028 01F4      		brne 1b
+  97 002a 00C0      		rjmp .
+  98               	.LBE19:
+  99               	.LBE18:
+ 126:ds1820/onewire.c **** #if OW_USE_INTERNAL_PULLUP
+ 127:ds1820/onewire.c **** 			OW_OUT_HIGH();
+ 128:ds1820/onewire.c **** #endif
+ 129:ds1820/onewire.c **** 		}
+ 130:ds1820/onewire.c **** 
+ 131:ds1820/onewire.c **** 		// "Output data from the DS18B20 is valid for 15usec after the falling
+ 132:ds1820/onewire.c **** 		// edge that initiated the read time slot. Therefore, the master must 
+ 133:ds1820/onewire.c **** 		// release the bus and then sample the bus state within 15ussec from 
+ 134:ds1820/onewire.c **** 		// the start of the slot."
+ 135:ds1820/onewire.c **** 		_delay_us(15-2-OW_CONF_DELAYOFFSET);
+ 136:ds1820/onewire.c **** 		
+ 137:ds1820/onewire.c **** 		if( OW_GET_IN() == 0 ) {
+ 100               		.loc 1 137 0
+ 101 002c 309B      		sbis 0x6,0
+ 138:ds1820/onewire.c **** 			b = 0;  // sample at end of read-timeslot
+ 102               		.loc 1 138 0
+ 103 002e 80E0      		ldi r24,0
+ 104               	.LVL3:
+ 105               	.L5:
+ 106               	.LBB20:
+ 107               	.LBB21:
+ 108               		.loc 2 246 0
+ 109 0030 F2E7      		ldi r31,lo8(114)
+ 110 0032 FA95      		1: dec r31
+ 111 0034 01F4      		brne 1b
+ 112 0036 00C0      		rjmp .
+ 113               	.LBE21:
+ 114               	.LBE20:
+ 139:ds1820/onewire.c **** 		}
+ 140:ds1820/onewire.c **** 	
+ 141:ds1820/onewire.c **** 		_delay_us(60-15-2+OW_CONF_DELAYOFFSET);
+ 142:ds1820/onewire.c **** #if OW_USE_INTERNAL_PULLUP
+ 143:ds1820/onewire.c **** 		OW_OUT_HIGH();
+ 144:ds1820/onewire.c **** #endif
+ 145:ds1820/onewire.c **** 		OW_DIR_IN();
+ 115               		.loc 1 145 0
+ 116 0038 3898      		cbi 0x7,0
+ 146:ds1820/onewire.c **** 	
+ 147:ds1820/onewire.c **** 		if ( with_parasite_enable ) {
+ 117               		.loc 1 147 0
+ 118 003a 6623      		tst r22
+ 119 003c 01F0      		breq .L6
+ 148:ds1820/onewire.c **** 			ow_parasite_enable();
+ 120               		.loc 1 148 0
+ 121 003e 8983      		std Y+1,r24
+ 122 0040 00D0      		rcall ow_parasite_enable
+ 123               	.LVL4:
+ 124 0042 8981      		ldd r24,Y+1
+ 125               	.L6:
+ 126               	.LVL5:
+ 127               	.LBB22:
+ 128               	.LBB23:
+ 129               		.loc 2 246 0
+ 130 0044 E7EC      		ldi r30,lo8(199)
+ 131 0046 F0E0      		ldi r31,hi8(199)
+ 132 0048 3197      		1: sbiw r30,1
+ 133 004a 01F4      		brne 1b
+ 134 004c 00C0      		rjmp .
+ 135 004e 0000      		nop
+ 136               	/* epilogue start */
+ 137               	.LBE23:
+ 138               	.LBE22:
+ 149:ds1820/onewire.c **** 		}
+ 150:ds1820/onewire.c **** 	
+ 151:ds1820/onewire.c **** 	} /* ATOMIC_BLOCK */
+ 152:ds1820/onewire.c **** 
+ 153:ds1820/onewire.c **** 	_delay_us(OW_RECOVERY_TIME); // may be increased for longer wires
+ 154:ds1820/onewire.c **** 
+ 155:ds1820/onewire.c **** 	return b;
+ 156:ds1820/onewire.c **** }
+ 139               		.loc 1 156 0
+ 140 0050 0F90      		pop __tmp_reg__
+ 141 0052 DF91      		pop r29
+ 142 0054 CF91      		pop r28
+ 143 0056 0895      		ret
+ 144               		.cfi_endproc
+ 145               	.LFE15:
+ 147               	.global	ow_parasite_disable
+ 149               	ow_parasite_disable:
+ 150               	.LFB13:
+  68:ds1820/onewire.c **** {
+ 151               		.loc 1 68 0
+ 152               		.cfi_startproc
+ 153               	/* prologue: function */
+ 154               	/* frame size = 0 */
+ 155               	/* stack size = 0 */
+ 156               	.L__stack_usage = 0
+  69:ds1820/onewire.c **** 	OW_DIR_IN();
+ 157               		.loc 1 69 0
+ 158 0058 3898      		cbi 0x7,0
+  71:ds1820/onewire.c **** 	OW_OUT_LOW();
+ 159               		.loc 1 71 0
+ 160 005a 4098      		cbi 0x8,0
+ 161 005c 0895      		ret
+ 162               		.cfi_endproc
+ 163               	.LFE13:
+ 165               	.global	ow_reset
+ 167               	ow_reset:
+ 168               	.LFB14:
+  77:ds1820/onewire.c **** {
+ 169               		.loc 1 77 0
+ 170               		.cfi_startproc
+ 171               	/* prologue: function */
+ 172               	/* frame size = 0 */
+ 173               	/* stack size = 0 */
+ 174               	.L__stack_usage = 0
+  80:ds1820/onewire.c **** 	OW_OUT_LOW();
+ 175               		.loc 1 80 0
+ 176 005e 4098      		cbi 0x8,0
+  81:ds1820/onewire.c **** 	OW_DIR_OUT();            // pull OW-Pin low for 480us
+ 177               		.loc 1 81 0
+ 178 0060 389A      		sbi 0x7,0
+ 179               	.LVL6:
+ 180               	.LBB24:
+ 181               	.LBB25:
+ 182               		.loc 2 246 0
+ 183 0062 8FEB      		ldi r24,lo8(959)
+ 184 0064 93E0      		ldi r25,hi8(959)
+ 185 0066 0197      		1: sbiw r24,1
+ 186 0068 01F4      		brne 1b
+ 187 006a 00C0      		rjmp .
+ 188 006c 0000      		nop
+ 189               	.LBE25:
+ 190               	.LBE24:
+  87:ds1820/onewire.c **** 		OW_DIR_IN(); // input
+ 191               		.loc 1 87 0
+ 192 006e 3898      		cbi 0x7,0
+ 193               	.LVL7:
+ 194               	.LBB26:
+ 195               	.LBB27:
+ 196               		.loc 2 246 0
+ 197 0070 9AEA      		ldi r25,lo8(-86)
+ 198 0072 9A95      		1: dec r25
+ 199 0074 01F4      		brne 1b
+ 200 0076 00C0      		rjmp .
+ 201               	.LBE27:
+ 202               	.LBE26:
+  93:ds1820/onewire.c **** 		err = OW_GET_IN();   // no presence detect
+ 203               		.loc 1 93 0
+ 204 0078 86B1      		in r24,0x6
+ 205               	.LVL8:
+ 206               	.LBB28:
+ 207               	.LBB29:
+ 208               		.loc 2 246 0
+ 209 007a EFE3      		ldi r30,lo8(831)
+ 210 007c F3E0      		ldi r31,hi8(831)
+ 211 007e 3197      		1: sbiw r30,1
+ 212 0080 01F4      		brne 1b
+ 213 0082 00C0      		rjmp .
+ 214 0084 0000      		nop
+ 215               	.LBE29:
+ 216               	.LBE28:
+ 100:ds1820/onewire.c **** 	if( OW_GET_IN() == 0 ) {
+ 217               		.loc 1 100 0
+ 218 0086 309B      		sbis 0x6,0
+ 219 0088 00C0      		rjmp .L18
+  93:ds1820/onewire.c **** 		err = OW_GET_IN();   // no presence detect
+ 220               		.loc 1 93 0
+ 221 008a 8170      		andi r24,lo8(1)
+ 222               	.LVL9:
+ 223 008c 0895      		ret
+ 224               	.LVL10:
+ 225               	.L18:
+ 101:ds1820/onewire.c **** 		err = 1;             // short circuit, expected low but got high
+ 226               		.loc 1 101 0
+ 227 008e 81E0      		ldi r24,lo8(1)
+ 228               	.LVL11:
+ 105:ds1820/onewire.c **** }
+ 229               		.loc 1 105 0
+ 230 0090 0895      		ret
+ 231               		.cfi_endproc
+ 232               	.LFE14:
+ 234               	.global	ow_bit_io
+ 236               	ow_bit_io:
+ 237               	.LFB16:
+ 157:ds1820/onewire.c **** 
+ 158:ds1820/onewire.c **** uint8_t ow_bit_io( uint8_t b )
+ 159:ds1820/onewire.c **** {
+ 238               		.loc 1 159 0
+ 239               		.cfi_startproc
+ 240               	.LVL12:
+ 241               	/* prologue: function */
+ 242               	/* frame size = 0 */
+ 243               	/* stack size = 0 */
+ 244               	.L__stack_usage = 0
+ 160:ds1820/onewire.c **** 	return ow_bit_io_intern( b & 1, 0 );
+ 245               		.loc 1 160 0
+ 246 0092 60E0      		ldi r22,0
+ 247 0094 8170      		andi r24,lo8(1)
+ 248               	.LVL13:
+ 249 0096 00C0      		rjmp ow_bit_io_intern
+ 250               	.LVL14:
+ 251               		.cfi_endproc
+ 252               	.LFE16:
+ 254               	.global	ow_byte_wr
+ 256               	ow_byte_wr:
+ 257               	.LFB17:
+ 161:ds1820/onewire.c **** }
+ 162:ds1820/onewire.c **** 
+ 163:ds1820/onewire.c **** uint8_t ow_byte_wr( uint8_t b )
+ 164:ds1820/onewire.c **** {
+ 258               		.loc 1 164 0
+ 259               		.cfi_startproc
+ 260               	.LVL15:
+ 261 0098 CF93      		push r28
+ 262               	.LCFI4:
+ 263               		.cfi_def_cfa_offset 3
+ 264               		.cfi_offset 28, -2
+ 265 009a DF93      		push r29
+ 266               	.LCFI5:
+ 267               		.cfi_def_cfa_offset 4
+ 268               		.cfi_offset 29, -3
+ 269               	/* prologue: function */
+ 270               	/* frame size = 0 */
+ 271               	/* stack size = 2 */
+ 272               	.L__stack_usage = 2
+ 273 009c C82F      		mov r28,r24
+ 274               	.LVL16:
+ 275               		.loc 1 164 0
+ 276 009e D8E0      		ldi r29,lo8(8)
+ 277               	.LVL17:
+ 278               	.L23:
+ 165:ds1820/onewire.c **** 	uint8_t i = 8, j;
+ 166:ds1820/onewire.c **** 	
+ 167:ds1820/onewire.c **** 	do {
+ 168:ds1820/onewire.c **** 		j = ow_bit_io( b & 1 );
+ 279               		.loc 1 168 0
+ 280 00a0 8C2F      		mov r24,r28
+ 281 00a2 8170      		andi r24,lo8(1)
+ 282 00a4 00D0      		rcall ow_bit_io
+ 283               	.LVL18:
+ 169:ds1820/onewire.c **** 		b >>= 1;
+ 284               		.loc 1 169 0
+ 285 00a6 C695      		lsr r28
+ 286               	.LVL19:
+ 170:ds1820/onewire.c **** 		if( j ) {
+ 287               		.loc 1 170 0
+ 288 00a8 8111      		cpse r24,__zero_reg__
+ 171:ds1820/onewire.c **** 			b |= 0x80;
+ 289               		.loc 1 171 0
+ 290 00aa C068      		ori r28,lo8(-128)
+ 291               	.LVL20:
+ 292               	.L21:
+ 293 00ac D150      		subi r29,lo8(-(-1))
+ 294               	.LVL21:
+ 172:ds1820/onewire.c **** 		}
+ 173:ds1820/onewire.c **** 	} while( --i );
+ 295               		.loc 1 173 0
+ 296 00ae 01F4      		brne .L23
+ 174:ds1820/onewire.c **** 	
+ 175:ds1820/onewire.c **** 	return b;
+ 176:ds1820/onewire.c **** }
+ 297               		.loc 1 176 0
+ 298 00b0 8C2F      		mov r24,r28
+ 299               	.LVL22:
+ 300               	/* epilogue start */
+ 301 00b2 DF91      		pop r29
+ 302               	.LVL23:
+ 303 00b4 CF91      		pop r28
+ 304               	.LVL24:
+ 305 00b6 0895      		ret
+ 306               		.cfi_endproc
+ 307               	.LFE17:
+ 309               	.global	ow_byte_wr_with_parasite_enable
+ 311               	ow_byte_wr_with_parasite_enable:
+ 312               	.LFB18:
+ 177:ds1820/onewire.c **** 
+ 178:ds1820/onewire.c **** uint8_t ow_byte_wr_with_parasite_enable( uint8_t b )
+ 179:ds1820/onewire.c **** {
+ 313               		.loc 1 179 0
+ 314               		.cfi_startproc
+ 315               	.LVL25:
+ 316 00b8 CF93      		push r28
+ 317               	.LCFI6:
+ 318               		.cfi_def_cfa_offset 3
+ 319               		.cfi_offset 28, -2
+ 320 00ba DF93      		push r29
+ 321               	.LCFI7:
+ 322               		.cfi_def_cfa_offset 4
+ 323               		.cfi_offset 29, -3
+ 324               	/* prologue: function */
+ 325               	/* frame size = 0 */
+ 326               	/* stack size = 2 */
+ 327               	.L__stack_usage = 2
+ 328 00bc C82F      		mov r28,r24
+ 329               	.LVL26:
+ 180:ds1820/onewire.c **** 	uint8_t i = 8, j;
+ 330               		.loc 1 180 0
+ 331 00be D8E0      		ldi r29,lo8(8)
+ 332               	.LVL27:
+ 333               	.L32:
+ 334 00c0 8C2F      		mov r24,r28
+ 335 00c2 8170      		andi r24,lo8(1)
+ 181:ds1820/onewire.c **** 	
+ 182:ds1820/onewire.c **** 	do {
+ 183:ds1820/onewire.c **** 		if ( i != 1 ) {
+ 336               		.loc 1 183 0
+ 337 00c4 D130      		cpi r29,lo8(1)
+ 338 00c6 01F0      		breq .L28
+ 184:ds1820/onewire.c **** 			j = ow_bit_io_intern( b & 1, 0 );
+ 339               		.loc 1 184 0
+ 340 00c8 60E0      		ldi r22,0
+ 341 00ca 00C0      		rjmp .L36
+ 342               	.L28:
+ 185:ds1820/onewire.c **** 		} else {
+ 186:ds1820/onewire.c **** 			j = ow_bit_io_intern( b & 1, 1 );
+ 343               		.loc 1 186 0
+ 344 00cc 61E0      		ldi r22,lo8(1)
+ 345               	.L36:
+ 346 00ce 00D0      		rcall ow_bit_io_intern
+ 347               	.LVL28:
+ 187:ds1820/onewire.c **** 		}
+ 188:ds1820/onewire.c **** 		b >>= 1;
+ 348               		.loc 1 188 0
+ 349 00d0 C695      		lsr r28
+ 350               	.LVL29:
+ 189:ds1820/onewire.c **** 		if( j ) {
+ 351               		.loc 1 189 0
+ 352 00d2 8111      		cpse r24,__zero_reg__
+ 190:ds1820/onewire.c **** 			b |= 0x80;
+ 353               		.loc 1 190 0
+ 354 00d4 C068      		ori r28,lo8(-128)
+ 355               	.LVL30:
+ 356               	.L30:
+ 191:ds1820/onewire.c **** 		}
+ 192:ds1820/onewire.c **** 	} while( --i );
+ 357               		.loc 1 192 0
+ 358 00d6 D150      		subi r29,lo8(-(-1))
+ 359               	.LVL31:
+ 360 00d8 01F4      		brne .L32
+ 193:ds1820/onewire.c **** 	
+ 194:ds1820/onewire.c **** 	return b;
+ 195:ds1820/onewire.c **** }
+ 361               		.loc 1 195 0
+ 362 00da 8C2F      		mov r24,r28
+ 363               	.LVL32:
+ 364               	/* epilogue start */
+ 365 00dc DF91      		pop r29
+ 366               	.LVL33:
+ 367 00de CF91      		pop r28
+ 368               	.LVL34:
+ 369 00e0 0895      		ret
+ 370               		.cfi_endproc
+ 371               	.LFE18:
+ 374               	ow_command_intern:
+ 375               	.LFB21:
+ 196:ds1820/onewire.c **** 
+ 197:ds1820/onewire.c **** 
+ 198:ds1820/onewire.c **** uint8_t ow_byte_rd( void )
+ 199:ds1820/onewire.c **** {
+ 200:ds1820/onewire.c **** 	// read by sending only "1"s, so bus gets released
+ 201:ds1820/onewire.c **** 	// after the init low-pulse in every slot
+ 202:ds1820/onewire.c **** 	return ow_byte_wr( 0xFF ); 
+ 203:ds1820/onewire.c **** }
+ 204:ds1820/onewire.c **** 
+ 205:ds1820/onewire.c **** 
+ 206:ds1820/onewire.c **** uint8_t ow_rom_search( uint8_t diff, uint8_t *id )
+ 207:ds1820/onewire.c **** {
+ 208:ds1820/onewire.c **** 	uint8_t i, j, next_diff;
+ 209:ds1820/onewire.c **** 	uint8_t b;
+ 210:ds1820/onewire.c **** 	
+ 211:ds1820/onewire.c **** 	if( ow_reset() ) {
+ 212:ds1820/onewire.c **** 		return OW_PRESENCE_ERR;         // error, no device found <--- early exit!
+ 213:ds1820/onewire.c **** 	}
+ 214:ds1820/onewire.c **** 	
+ 215:ds1820/onewire.c **** 	ow_byte_wr( OW_SEARCH_ROM );        // ROM search command
+ 216:ds1820/onewire.c **** 	next_diff = OW_LAST_DEVICE;         // unchanged on last device
+ 217:ds1820/onewire.c **** 	
+ 218:ds1820/onewire.c **** 	i = OW_ROMCODE_SIZE * 8;            // 8 bytes
+ 219:ds1820/onewire.c **** 	
+ 220:ds1820/onewire.c **** 	do {
+ 221:ds1820/onewire.c **** 		j = 8;                          // 8 bits
+ 222:ds1820/onewire.c **** 		do {
+ 223:ds1820/onewire.c **** 			b = ow_bit_io( 1 );         // read bit
+ 224:ds1820/onewire.c **** 			if( ow_bit_io( 1 ) ) {      // read complement bit
+ 225:ds1820/onewire.c **** 				if( b ) {               // 0b11
+ 226:ds1820/onewire.c **** 					return OW_DATA_ERR; // data error <--- early exit!
+ 227:ds1820/onewire.c **** 				}
+ 228:ds1820/onewire.c **** 			}
+ 229:ds1820/onewire.c **** 			else {
+ 230:ds1820/onewire.c **** 				if( !b ) {              // 0b00 = 2 devices
+ 231:ds1820/onewire.c **** 					if( diff > i || ((*id & 1) && diff != i) ) {
+ 232:ds1820/onewire.c **** 						b = 1;          // now 1
+ 233:ds1820/onewire.c **** 						next_diff = i;  // next pass 0
+ 234:ds1820/onewire.c **** 					}
+ 235:ds1820/onewire.c **** 				}
+ 236:ds1820/onewire.c **** 			}
+ 237:ds1820/onewire.c **** 			ow_bit_io( b );             // write bit
+ 238:ds1820/onewire.c **** 			*id >>= 1;
+ 239:ds1820/onewire.c **** 			if( b ) {
+ 240:ds1820/onewire.c **** 				*id |= 0x80;            // store bit
+ 241:ds1820/onewire.c **** 			}
+ 242:ds1820/onewire.c **** 			
+ 243:ds1820/onewire.c **** 			i--;
+ 244:ds1820/onewire.c **** 			
+ 245:ds1820/onewire.c **** 		} while( --j );
+ 246:ds1820/onewire.c **** 		
+ 247:ds1820/onewire.c **** 		id++;                           // next byte
+ 248:ds1820/onewire.c **** 	
+ 249:ds1820/onewire.c **** 	} while( i );
+ 250:ds1820/onewire.c **** 	
+ 251:ds1820/onewire.c **** 	return next_diff;                   // to continue search
+ 252:ds1820/onewire.c **** }
+ 253:ds1820/onewire.c **** 
+ 254:ds1820/onewire.c **** 
+ 255:ds1820/onewire.c **** 
+ 256:ds1820/onewire.c **** static void ow_command_intern( uint8_t command, uint8_t *id, uint8_t with_parasite_enable )
+ 257:ds1820/onewire.c **** {
+ 376               		.loc 1 257 0
+ 377               		.cfi_startproc
+ 378               	.LVL35:
+ 379 00e2 EF92      		push r14
+ 380               	.LCFI8:
+ 381               		.cfi_def_cfa_offset 3
+ 382               		.cfi_offset 14, -2
+ 383 00e4 FF92      		push r15
+ 384               	.LCFI9:
+ 385               		.cfi_def_cfa_offset 4
+ 386               		.cfi_offset 15, -3
+ 387 00e6 0F93      		push r16
+ 388               	.LCFI10:
+ 389               		.cfi_def_cfa_offset 5
+ 390               		.cfi_offset 16, -4
+ 391 00e8 1F93      		push r17
+ 392               	.LCFI11:
+ 393               		.cfi_def_cfa_offset 6
+ 394               		.cfi_offset 17, -5
+ 395 00ea CF93      		push r28
+ 396               	.LCFI12:
+ 397               		.cfi_def_cfa_offset 7
+ 398               		.cfi_offset 28, -6
+ 399 00ec DF93      		push r29
+ 400               	.LCFI13:
+ 401               		.cfi_def_cfa_offset 8
+ 402               		.cfi_offset 29, -7
+ 403               	/* prologue: function */
+ 404               	/* frame size = 0 */
+ 405               	/* stack size = 6 */
+ 406               	.L__stack_usage = 6
+ 407 00ee F82E      		mov r15,r24
+ 408 00f0 EB01      		movw r28,r22
+ 409 00f2 E42E      		mov r14,r20
+ 258:ds1820/onewire.c **** 	uint8_t i;
+ 259:ds1820/onewire.c **** 
+ 260:ds1820/onewire.c **** 	ow_reset();
+ 410               		.loc 1 260 0
+ 411 00f4 00D0      		rcall ow_reset
+ 412               	.LVL36:
+ 261:ds1820/onewire.c **** 
+ 262:ds1820/onewire.c **** 	if( id ) {
+ 413               		.loc 1 262 0
+ 414 00f6 2097      		sbiw r28,0
+ 415 00f8 01F0      		breq .L38
+ 263:ds1820/onewire.c **** 		ow_byte_wr( OW_MATCH_ROM );     // to a single device
+ 416               		.loc 1 263 0
+ 417 00fa 85E5      		ldi r24,lo8(85)
+ 418 00fc 00D0      		rcall ow_byte_wr
+ 419               	.LVL37:
+ 420 00fe 8E01      		movw r16,r28
+ 421 0100 085F      		subi r16,-8
+ 422 0102 1F4F      		sbci r17,-1
+ 423               	.L40:
+ 264:ds1820/onewire.c **** 		i = OW_ROMCODE_SIZE;
+ 265:ds1820/onewire.c **** 		do {
+ 266:ds1820/onewire.c **** 			ow_byte_wr( *id );
+ 424               		.loc 1 266 0 discriminator 1
+ 425 0104 8991      		ld r24,Y+
+ 426               	.LVL38:
+ 427 0106 00D0      		rcall ow_byte_wr
+ 428               	.LVL39:
+ 267:ds1820/onewire.c **** 			id++;
+ 268:ds1820/onewire.c **** 		} while( --i );
+ 429               		.loc 1 268 0 discriminator 1
+ 430 0108 C017      		cp r28,r16
+ 431 010a D107      		cpc r29,r17
+ 432 010c 01F4      		brne .L40
+ 433 010e 00C0      		rjmp .L39
+ 434               	.LVL40:
+ 435               	.L38:
+ 269:ds1820/onewire.c **** 	} 
+ 270:ds1820/onewire.c **** 	else {
+ 271:ds1820/onewire.c **** 		ow_byte_wr( OW_SKIP_ROM );      // to all devices
+ 436               		.loc 1 271 0
+ 437 0110 8CEC      		ldi r24,lo8(-52)
+ 438 0112 00D0      		rcall ow_byte_wr
+ 439               	.LVL41:
+ 440               	.L39:
+ 272:ds1820/onewire.c **** 	}
+ 273:ds1820/onewire.c **** 	
+ 274:ds1820/onewire.c **** 	if ( with_parasite_enable  ) {
+ 275:ds1820/onewire.c **** 		ow_byte_wr_with_parasite_enable( command );
+ 441               		.loc 1 275 0
+ 442 0114 8F2D      		mov r24,r15
+ 274:ds1820/onewire.c **** 	if ( with_parasite_enable  ) {
+ 443               		.loc 1 274 0
+ 444 0116 EE20      		tst r14
+ 445 0118 01F0      		breq .L41
+ 446               	/* epilogue start */
+ 276:ds1820/onewire.c **** 	} else {
+ 277:ds1820/onewire.c **** 		ow_byte_wr( command );
+ 278:ds1820/onewire.c **** 	}
+ 279:ds1820/onewire.c **** }
+ 447               		.loc 1 279 0
+ 448 011a DF91      		pop r29
+ 449 011c CF91      		pop r28
+ 450               	.LVL42:
+ 451 011e 1F91      		pop r17
+ 452 0120 0F91      		pop r16
+ 453 0122 FF90      		pop r15
+ 454               	.LVL43:
+ 455 0124 EF90      		pop r14
+ 456               	.LVL44:
+ 275:ds1820/onewire.c **** 		ow_byte_wr_with_parasite_enable( command );
+ 457               		.loc 1 275 0
+ 458 0126 00C0      		rjmp ow_byte_wr_with_parasite_enable
+ 459               	.LVL45:
+ 460               	.L41:
+ 461               	/* epilogue start */
+ 462               		.loc 1 279 0
+ 463 0128 DF91      		pop r29
+ 464 012a CF91      		pop r28
+ 465               	.LVL46:
+ 466 012c 1F91      		pop r17
+ 467 012e 0F91      		pop r16
+ 468 0130 FF90      		pop r15
+ 469               	.LVL47:
+ 470 0132 EF90      		pop r14
+ 471               	.LVL48:
+ 277:ds1820/onewire.c **** 		ow_byte_wr( command );
+ 472               		.loc 1 277 0
+ 473 0134 00C0      		rjmp ow_byte_wr
+ 474               	.LVL49:
+ 475               		.cfi_endproc
+ 476               	.LFE21:
+ 478               	.global	ow_byte_rd
+ 480               	ow_byte_rd:
+ 481               	.LFB19:
+ 199:ds1820/onewire.c **** {
+ 482               		.loc 1 199 0
+ 483               		.cfi_startproc
+ 484               	/* prologue: function */
+ 485               	/* frame size = 0 */
+ 486               	/* stack size = 0 */
+ 487               	.L__stack_usage = 0
+ 202:ds1820/onewire.c **** 	return ow_byte_wr( 0xFF ); 
+ 488               		.loc 1 202 0
+ 489 0136 8FEF      		ldi r24,lo8(-1)
+ 490 0138 00C0      		rjmp ow_byte_wr
+ 491               	.LVL50:
+ 492               		.cfi_endproc
+ 493               	.LFE19:
+ 495               	.global	ow_rom_search
+ 497               	ow_rom_search:
+ 498               	.LFB20:
+ 207:ds1820/onewire.c **** {
+ 499               		.loc 1 207 0
+ 500               		.cfi_startproc
+ 501               	.LVL51:
+ 502 013a DF92      		push r13
+ 503               	.LCFI14:
+ 504               		.cfi_def_cfa_offset 3
+ 505               		.cfi_offset 13, -2
+ 506 013c EF92      		push r14
+ 507               	.LCFI15:
+ 508               		.cfi_def_cfa_offset 4
+ 509               		.cfi_offset 14, -3
+ 510 013e FF92      		push r15
+ 511               	.LCFI16:
+ 512               		.cfi_def_cfa_offset 5
+ 513               		.cfi_offset 15, -4
+ 514 0140 0F93      		push r16
+ 515               	.LCFI17:
+ 516               		.cfi_def_cfa_offset 6
+ 517               		.cfi_offset 16, -5
+ 518 0142 1F93      		push r17
+ 519               	.LCFI18:
+ 520               		.cfi_def_cfa_offset 7
+ 521               		.cfi_offset 17, -6
+ 522 0144 CF93      		push r28
+ 523               	.LCFI19:
+ 524               		.cfi_def_cfa_offset 8
+ 525               		.cfi_offset 28, -7
+ 526 0146 DF93      		push r29
+ 527               	.LCFI20:
+ 528               		.cfi_def_cfa_offset 9
+ 529               		.cfi_offset 29, -8
+ 530               	/* prologue: function */
+ 531               	/* frame size = 0 */
+ 532               	/* stack size = 7 */
+ 533               	.L__stack_usage = 7
+ 534 0148 E82E      		mov r14,r24
+ 535 014a EB01      		movw r28,r22
+ 211:ds1820/onewire.c **** 	if( ow_reset() ) {
+ 536               		.loc 1 211 0
+ 537 014c 00D0      		rcall ow_reset
+ 538               	.LVL52:
+ 539 014e 8111      		cpse r24,__zero_reg__
+ 540 0150 00C0      		rjmp .L52
+ 215:ds1820/onewire.c **** 	ow_byte_wr( OW_SEARCH_ROM );        // ROM search command
+ 541               		.loc 1 215 0
+ 542 0152 80EF      		ldi r24,lo8(-16)
+ 543 0154 00D0      		rcall ow_byte_wr
+ 544               	.LVL53:
+ 216:ds1820/onewire.c **** 	next_diff = OW_LAST_DEVICE;         // unchanged on last device
+ 545               		.loc 1 216 0
+ 546 0156 F12C      		mov r15,__zero_reg__
+ 218:ds1820/onewire.c **** 	i = OW_ROMCODE_SIZE * 8;            // 8 bytes
+ 547               		.loc 1 218 0
+ 548 0158 10E4      		ldi r17,lo8(64)
+ 549               	.LVL54:
+ 550               	.L51:
+ 551 015a 88EF      		ldi r24,lo8(-8)
+ 552 015c D82E      		mov r13,r24
+ 553 015e D10E      		add r13,r17
+ 554               	.L50:
+ 223:ds1820/onewire.c **** 			b = ow_bit_io( 1 );         // read bit
+ 555               		.loc 1 223 0
+ 556 0160 81E0      		ldi r24,lo8(1)
+ 557 0162 00D0      		rcall ow_bit_io
+ 558               	.LVL55:
+ 559 0164 082F      		mov r16,r24
+ 560               	.LVL56:
+ 224:ds1820/onewire.c **** 			if( ow_bit_io( 1 ) ) {      // read complement bit
+ 561               		.loc 1 224 0
+ 562 0166 81E0      		ldi r24,lo8(1)
+ 563 0168 00D0      		rcall ow_bit_io
+ 564               	.LVL57:
+ 565 016a 8823      		tst r24
+ 566 016c 01F0      		breq .L45
+ 225:ds1820/onewire.c **** 				if( b ) {               // 0b11
+ 567               		.loc 1 225 0
+ 568 016e 0023      		tst r16
+ 569 0170 01F0      		breq .L46
+ 570 0172 00C0      		rjmp .L61
+ 571               	.L45:
+ 230:ds1820/onewire.c **** 				if( !b ) {              // 0b00 = 2 devices
+ 572               		.loc 1 230 0
+ 573 0174 0111      		cpse r16,__zero_reg__
+ 574 0176 00C0      		rjmp .L46
+ 231:ds1820/onewire.c **** 					if( diff > i || ((*id & 1) && diff != i) ) {
+ 575               		.loc 1 231 0
+ 576 0178 1E15      		cp r17,r14
+ 577 017a 00F0      		brlo .L55
+ 231:ds1820/onewire.c **** 					if( diff > i || ((*id & 1) && diff != i) ) {
+ 578               		.loc 1 231 0 is_stmt 0 discriminator 1
+ 579 017c 8881      		ld r24,Y
+ 580 017e 80FF      		sbrs r24,0
+ 581 0180 00C0      		rjmp .L46
+ 582 0182 E116      		cp r14,r17
+ 583 0184 01F0      		breq .L46
+ 584               	.L55:
+ 585 0186 F12E      		mov r15,r17
+ 586               	.LVL58:
+ 232:ds1820/onewire.c **** 						b = 1;          // now 1
+ 587               		.loc 1 232 0 is_stmt 1
+ 588 0188 01E0      		ldi r16,lo8(1)
+ 589               	.LVL59:
+ 590               	.L46:
+ 237:ds1820/onewire.c **** 			ow_bit_io( b );             // write bit
+ 591               		.loc 1 237 0
+ 592 018a 802F      		mov r24,r16
+ 593 018c 00D0      		rcall ow_bit_io
+ 594               	.LVL60:
+ 238:ds1820/onewire.c **** 			*id >>= 1;
+ 595               		.loc 1 238 0
+ 596 018e 9881      		ld r25,Y
+ 597 0190 9695      		lsr r25
+ 239:ds1820/onewire.c **** 			if( b ) {
+ 598               		.loc 1 239 0
+ 599 0192 0111      		cpse r16,__zero_reg__
+ 240:ds1820/onewire.c **** 				*id |= 0x80;            // store bit
+ 600               		.loc 1 240 0
+ 601 0194 9068      		ori r25,lo8(-128)
+ 602               	.L60:
+ 603 0196 9883      		st Y,r25
+ 243:ds1820/onewire.c **** 			i--;
+ 604               		.loc 1 243 0
+ 605 0198 1150      		subi r17,lo8(-(-1))
+ 606               	.LVL61:
+ 245:ds1820/onewire.c **** 		} while( --j );
+ 607               		.loc 1 245 0
+ 608 019a 1D11      		cpse r17,r13
+ 609 019c 00C0      		rjmp .L50
+ 247:ds1820/onewire.c **** 		id++;                           // next byte
+ 610               		.loc 1 247 0
+ 611 019e 2196      		adiw r28,1
+ 612               	.LVL62:
+ 249:ds1820/onewire.c **** 	} while( i );
+ 613               		.loc 1 249 0
+ 614 01a0 1111      		cpse r17,__zero_reg__
+ 615 01a2 00C0      		rjmp .L51
+ 616 01a4 8F2D      		mov r24,r15
+ 617 01a6 00C0      		rjmp .L44
+ 618               	.LVL63:
+ 619               	.L52:
+ 212:ds1820/onewire.c **** 		return OW_PRESENCE_ERR;         // error, no device found <--- early exit!
+ 620               		.loc 1 212 0
+ 621 01a8 8FEF      		ldi r24,lo8(-1)
+ 622 01aa 00C0      		rjmp .L44
+ 623               	.LVL64:
+ 624               	.L61:
+ 226:ds1820/onewire.c **** 					return OW_DATA_ERR; // data error <--- early exit!
+ 625               		.loc 1 226 0
+ 626 01ac 8EEF      		ldi r24,lo8(-2)
+ 627               	.LVL65:
+ 628               	.L44:
+ 629               	/* epilogue start */
+ 252:ds1820/onewire.c **** }
+ 630               		.loc 1 252 0
+ 631 01ae DF91      		pop r29
+ 632 01b0 CF91      		pop r28
+ 633               	.LVL66:
+ 634 01b2 1F91      		pop r17
+ 635 01b4 0F91      		pop r16
+ 636 01b6 FF90      		pop r15
+ 637 01b8 EF90      		pop r14
+ 638               	.LVL67:
+ 639 01ba DF90      		pop r13
+ 640 01bc 0895      		ret
+ 641               		.cfi_endproc
+ 642               	.LFE20:
+ 644               	.global	ow_command
+ 646               	ow_command:
+ 647               	.LFB22:
+ 280:ds1820/onewire.c **** 
+ 281:ds1820/onewire.c **** void ow_command( uint8_t command, uint8_t *id )
+ 282:ds1820/onewire.c **** {
+ 648               		.loc 1 282 0
+ 649               		.cfi_startproc
+ 650               	.LVL68:
+ 651               	/* prologue: function */
+ 652               	/* frame size = 0 */
+ 653               	/* stack size = 0 */
+ 654               	.L__stack_usage = 0
+ 283:ds1820/onewire.c **** 	ow_command_intern( command, id, 0);
+ 655               		.loc 1 283 0
+ 656 01be 40E0      		ldi r20,0
+ 657 01c0 00C0      		rjmp ow_command_intern
+ 658               	.LVL69:
+ 659               		.cfi_endproc
+ 660               	.LFE22:
+ 662               	.global	ow_command_with_parasite_enable
+ 664               	ow_command_with_parasite_enable:
+ 665               	.LFB23:
+ 284:ds1820/onewire.c **** }
+ 285:ds1820/onewire.c **** 
+ 286:ds1820/onewire.c **** void ow_command_with_parasite_enable( uint8_t command, uint8_t *id )
+ 287:ds1820/onewire.c **** {
+ 666               		.loc 1 287 0
+ 667               		.cfi_startproc
+ 668               	.LVL70:
+ 669               	/* prologue: function */
+ 670               	/* frame size = 0 */
+ 671               	/* stack size = 0 */
+ 672               	.L__stack_usage = 0
+ 288:ds1820/onewire.c **** 	ow_command_intern( command, id, 1 );
+ 673               		.loc 1 288 0
+ 674 01c2 41E0      		ldi r20,lo8(1)
+ 675 01c4 00C0      		rjmp ow_command_intern
+ 676               	.LVL71:
+ 677               		.cfi_endproc
+ 678               	.LFE23:
+ 680               	.Letext0:
+ 681               		.file 3 "/usr/lib/avr/include/stdint.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 onewire.c
+     /tmp/ccUXcBMs.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccUXcBMs.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccUXcBMs.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccUXcBMs.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccUXcBMs.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccUXcBMs.s:12     .text:0000000000000000 ow_input_pin_state
+     /tmp/ccUXcBMs.s:31     .text:0000000000000006 ow_parasite_enable
+     /tmp/ccUXcBMs.s:48     .text:000000000000000c ow_bit_io_intern
+     /tmp/ccUXcBMs.s:149    .text:0000000000000058 ow_parasite_disable
+     /tmp/ccUXcBMs.s:167    .text:000000000000005e ow_reset
+     /tmp/ccUXcBMs.s:236    .text:0000000000000092 ow_bit_io
+     /tmp/ccUXcBMs.s:256    .text:0000000000000098 ow_byte_wr
+     /tmp/ccUXcBMs.s:311    .text:00000000000000b8 ow_byte_wr_with_parasite_enable
+     /tmp/ccUXcBMs.s:374    .text:00000000000000e2 ow_command_intern
+     /tmp/ccUXcBMs.s:480    .text:0000000000000136 ow_byte_rd
+     /tmp/ccUXcBMs.s:497    .text:000000000000013a ow_rom_search
+     /tmp/ccUXcBMs.s:646    .text:00000000000001be ow_command
+     /tmp/ccUXcBMs.s:664    .text:00000000000001c2 ow_command_with_parasite_enable
+
+NO UNDEFINED SYMBOLS

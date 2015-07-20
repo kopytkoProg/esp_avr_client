@@ -70,18 +70,18 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = ./bin/test
+TARGET = ./bin/main
 
 
 # Object files directory
 #     To put object files in current directory, use a dot (.), do NOT make
 #     this an empty or blank macro!
-OBJDIR = ./bin
+OBJDIR = .
 
 
 # List C source files here. (C dependencies are automatically generated.)
 #SRC = $(TARGET).c
-SRC = test.c uart/uart.c esp/esp.c crc8.c ds18x20-1.c onewire.c
+SRC = main.c uart/uart.c esp/esp.c ds1820/crc8.c ds1820/ds18x20-1.c ds1820/onewire.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)
@@ -542,6 +542,7 @@ extcoff: $(TARGET).elf
 .SECONDARY : $(TARGET).elf
 .PRECIOUS : $(OBJ)
 %.elf: $(OBJ)
+	
 	@echo
 	@echo $(MSG_LINKING) $@
 	$(CC) $(ALL_CFLAGS) $^ --output $@ $(LDFLAGS)

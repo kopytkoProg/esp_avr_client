@@ -3,11 +3,13 @@
 #include <string.h>
 #include "uart/uart.h"
 #include "commands.h"
+#include "esp.h"
 
 // will be code to reasembly msg from uart
-#define BUFFER_SIZE  	100
 
-char buffer[BUFFER_SIZE + 1];
+#define ASYNC_MSG_HEADER_BUFFER 		10
+
+char buffer[ESP_RECEIVE_BUFFER_SIZE + 1];
 static uint8_t p = 0;
 static uint8_t id = 0;
 static uint8_t size = 0;
@@ -33,10 +35,67 @@ uint8_t find_first(char s[], uint8_t length, uint8_t c) {
  * send debug msg to las connected master
  */
 void esp_debug(char *s) {
-	char b[101];
+	char b[UART_SEND_BUFFER_SIZE + 1];
 	sprintf(b, "<%u, %u>{"HEADER_DEBUG"|%s}\r\n", id, strlen(s) + strlen(HEADER_DEBUG) + 3, s);
+	send(b);
+}
+
+void esp_send(char *s) {
+	char b[UART_SEND_BUFFER_SIZE + 1];
+	sprintf(b, "{%s}\r\n", s);
+	send(b);
+}
+
+/**
+ * Warning: No length control !!!
+ */
+void esp_sendf(char *s, ...) {
+	char b[UART_SEND_BUFFER_SIZE + 1];
+	uint8_t l = 0;
+
+	va_list vl;
+	va_start(vl, s);
+
+	l += sprintf(b, "{");
+	l += vsprintf(&b[l], s, vl);
+	l += sprintf(&b[l], "}");
+
+	va_end(vl);
 
 	send(b);
+}
+
+/**
+ * Warning: No length control !!!
+ *
+ */
+void esp_debugf(char *s, ...) {
+
+	char b[UART_SEND_BUFFER_SIZE + ASYNC_MSG_HEADER_BUFFER + 1];
+	uint8_t dl = 0;
+	uint8_t hl = 0;
+
+	va_list vl;
+	va_start(vl, s);
+
+	dl += sprintf(&b[ASYNC_MSG_HEADER_BUFFER], "{"HEADER_DEBUG"|");
+
+	dl += vsprintf(&b[ASYNC_MSG_HEADER_BUFFER + dl], s, vl);
+
+	strcat(&b[ASYNC_MSG_HEADER_BUFFER + dl], "}");
+	dl += 1;
+
+	hl = sprintf(b, "<%u, %u>", id, dl);
+
+	// move the <> header to begin body {}
+	uint8_t i;
+	for (i = 1; i <= hl; i++)
+		b[ASYNC_MSG_HEADER_BUFFER - i] = b[hl - i];
+
+	va_end(vl);
+
+	send(&b[ASYNC_MSG_HEADER_BUFFER - hl]);
+
 }
 
 char esp_isMsgToExe(void) {
@@ -67,9 +126,8 @@ void esp_getMsg_done(char *b) {
 
 void onChar(char c) {
 
-//	char b[50];
-//	sprintf(b, "%c", c);
-//	send(b);
+
+
 
 	switch (esp_state) {
 	case waiting_for_cmd:
@@ -118,7 +176,7 @@ void onChar(char c) {
 		break;
 	case reciving_unknown_length_data:
 		//--------------------------------------------------------
-		if (p >= BUFFER_SIZE) {
+		if (p >= UART_SEND_BUFFER_SIZE) {
 			esp_state = waiting_for_cmd;
 			p = 0;
 			return;

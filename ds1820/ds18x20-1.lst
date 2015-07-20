@@ -1,0 +1,1448 @@
+   1               		.file	"ds18x20-1.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  11               	DS18X20_raw_to_decicelsius:
+  12               	.LFB6:
+  13               		.file 1 "ds1820/ds18x20-1.c"
+   1:ds1820/ds18x20-1.c **** /*********************************************************************************
+   2:ds1820/ds18x20-1.c ****  Title:    DS18X20-Functions via One-Wire-Bus
+   3:ds1820/ds18x20-1.c ****  Author:   Martin Thomas <eversmith@heizung-thomas.de>
+   4:ds1820/ds18x20-1.c ****  http://www.siwawi.arubi.uni-kl.de/avr-projects
+   5:ds1820/ds18x20-1.c ****  Software: avr-gcc 4.3.3 / avr-libc 1.6.7 (WinAVR 3/2010)
+   6:ds1820/ds18x20-1.c ****  Hardware: any AVR - tested with ATmega16/ATmega32/ATmega324P and 3 DS18B20
+   7:ds1820/ds18x20-1.c **** 
+   8:ds1820/ds18x20-1.c ****  Partly based on code from Peter Dannegger and others.
+   9:ds1820/ds18x20-1.c **** 
+  10:ds1820/ds18x20-1.c ****  changelog:
+  11:ds1820/ds18x20-1.c ****  20041124 - Extended measurements for DS18(S)20 contributed by Carsten Foss (CFO)
+  12:ds1820/ds18x20-1.c ****  200502xx - function DS18X20_read_meas_single
+  13:ds1820/ds18x20-1.c ****  20050310 - DS18x20 EEPROM functions (can be disabled to save flash-memory)
+  14:ds1820/ds18x20-1.c ****  (DS18X20_EEPROMSUPPORT in ds18x20.h)
+  15:ds1820/ds18x20-1.c ****  20100625 - removed inner returns, added static function for read scratchpad
+  16:ds1820/ds18x20-1.c ****  . replaced full-celcius and fractbit method with decicelsius
+  17:ds1820/ds18x20-1.c ****  and maxres (degreeCelsius*10e-4) functions, renamed eeprom-functions,
+  18:ds1820/ds18x20-1.c ****  delay in recall_e2 replaced by timeout-handling
+  19:ds1820/ds18x20-1.c ****  20100714 - ow_command_skip_last_recovery used for parasite-powerd devices so the
+  20:ds1820/ds18x20-1.c ****  strong pull-up can be enabled in time even with longer OW recovery times
+  21:ds1820/ds18x20-1.c ****  20110209 - fix in DS18X20_format_from_maxres() by Marian Kulesza
+  22:ds1820/ds18x20-1.c ****  **********************************************************************************/
+  23:ds1820/ds18x20-1.c **** 
+  24:ds1820/ds18x20-1.c **** #include <stdlib.h>
+  25:ds1820/ds18x20-1.c **** #include <stdint.h>
+  26:ds1820/ds18x20-1.c **** 
+  27:ds1820/ds18x20-1.c **** #include <avr/io.h>
+  28:ds1820/ds18x20-1.c **** #include <avr/pgmspace.h>
+  29:ds1820/ds18x20-1.c **** 
+  30:ds1820/ds18x20-1.c **** #include "ds18x20.h"
+  31:ds1820/ds18x20-1.c **** #include "onewire.h"
+  32:ds1820/ds18x20-1.c **** #include "crc8.h"
+  33:ds1820/ds18x20-1.c **** 
+  34:ds1820/ds18x20-1.c **** #if DS18X20_EEPROMSUPPORT
+  35:ds1820/ds18x20-1.c **** // for 10ms delay in copy scratchpad
+  36:ds1820/ds18x20-1.c **** #include <util/delay.h>
+  37:ds1820/ds18x20-1.c **** #endif /* DS18X20_EEPROMSUPPORT */
+  38:ds1820/ds18x20-1.c **** 
+  39:ds1820/ds18x20-1.c **** /*----------- start of "debug-functions" ---------------*/
+  40:ds1820/ds18x20-1.c **** 
+  41:ds1820/ds18x20-1.c **** #if DS18X20_VERBOSE
+  42:ds1820/ds18x20-1.c **** #if (!DS18X20_DECICELSIUS)
+  43:ds1820/ds18x20-1.c **** #error "DS18X20_DECICELSIUS must be enabled for verbose-mode"
+  44:ds1820/ds18x20-1.c **** #endif
+  45:ds1820/ds18x20-1.c **** 
+  46:ds1820/ds18x20-1.c **** /* functions for debugging-output - undef DS18X20_VERBOSE in .h
+  47:ds1820/ds18x20-1.c ****  if you run out of program-memory */
+  48:ds1820/ds18x20-1.c **** #include <string.h>
+  49:ds1820/ds18x20-1.c **** #include "uart.h"
+  50:ds1820/ds18x20-1.c **** #include "uart_addon.h"
+  51:ds1820/ds18x20-1.c **** 
+  52:ds1820/ds18x20-1.c **** static int16_t DS18X20_raw_to_decicelsius( uint8_t fc, uint8_t sp[] );
+  53:ds1820/ds18x20-1.c **** 
+  54:ds1820/ds18x20-1.c **** void DS18X20_show_id_uart( uint8_t *id, size_t n )
+  55:ds1820/ds18x20-1.c **** {
+  56:ds1820/ds18x20-1.c **** 	size_t i;
+  57:ds1820/ds18x20-1.c **** 
+  58:ds1820/ds18x20-1.c **** 	for( i = 0; i < n; i++ ) {
+  59:ds1820/ds18x20-1.c **** 		if ( i == 0 ) {uart_puts_P( "FC:" );}
+  60:ds1820/ds18x20-1.c **** 		else if ( i == n-1 ) {uart_puts_P( "CRC:" );}
+  61:ds1820/ds18x20-1.c **** 		if ( i == 1 ) {uart_puts_P( "SN: " );}
+  62:ds1820/ds18x20-1.c **** 		uart_puthex_byte(id[i]);
+  63:ds1820/ds18x20-1.c **** 		uart_puts_P(" ");
+  64:ds1820/ds18x20-1.c **** 		if ( i == 0 ) {
+  65:ds1820/ds18x20-1.c **** 			if ( id[0] == DS18S20_FAMILY_CODE ) {uart_puts_P ("(18S)");}
+  66:ds1820/ds18x20-1.c **** 			else if ( id[0] == DS18B20_FAMILY_CODE ) {uart_puts_P ("(18B)");}
+  67:ds1820/ds18x20-1.c **** 			else if ( id[0] == DS1822_FAMILY_CODE ) {uart_puts_P ("(22)");}
+  68:ds1820/ds18x20-1.c **** 			else {uart_puts_P ("( ? )");}
+  69:ds1820/ds18x20-1.c **** 		}
+  70:ds1820/ds18x20-1.c **** 	}
+  71:ds1820/ds18x20-1.c **** 	if ( crc8( id, OW_ROMCODE_SIZE) )
+  72:ds1820/ds18x20-1.c **** 	uart_puts_P( " CRC FAIL " );
+  73:ds1820/ds18x20-1.c **** 	else
+  74:ds1820/ds18x20-1.c **** 	uart_puts_P( " CRC O.K. " );
+  75:ds1820/ds18x20-1.c **** }
+  76:ds1820/ds18x20-1.c **** 
+  77:ds1820/ds18x20-1.c **** static void show_sp_uart( uint8_t *sp, size_t n )
+  78:ds1820/ds18x20-1.c **** {
+  79:ds1820/ds18x20-1.c **** 	size_t i;
+  80:ds1820/ds18x20-1.c **** 
+  81:ds1820/ds18x20-1.c **** 	uart_puts_P( "SP:" );
+  82:ds1820/ds18x20-1.c **** 	for( i = 0; i < n; i++ ) {
+  83:ds1820/ds18x20-1.c **** 		if ( i == n-1 ) {uart_puts_P( "CRC:" );}
+  84:ds1820/ds18x20-1.c **** 		uart_puthex_byte(sp[i]);
+  85:ds1820/ds18x20-1.c **** 		uart_puts_P(" ");
+  86:ds1820/ds18x20-1.c **** 	}
+  87:ds1820/ds18x20-1.c **** }
+  88:ds1820/ds18x20-1.c **** 
+  89:ds1820/ds18x20-1.c **** /*
+  90:ds1820/ds18x20-1.c ****  convert raw value from DS18x20 to Celsius
+  91:ds1820/ds18x20-1.c ****  input is:
+  92:ds1820/ds18x20-1.c ****  - familycode fc (0x10/0x28 see header)
+  93:ds1820/ds18x20-1.c ****  - scratchpad-buffer
+  94:ds1820/ds18x20-1.c ****  output is:
+  95:ds1820/ds18x20-1.c ****  - cel full celsius
+  96:ds1820/ds18x20-1.c ****  - fractions of celsius in millicelsius*(10^-1)/625 (the 4 LS-Bits)
+  97:ds1820/ds18x20-1.c ****  - subzero =0 positiv / 1 negativ
+  98:ds1820/ds18x20-1.c ****  always returns  DS18X20_OK
+  99:ds1820/ds18x20-1.c ****  */
+ 100:ds1820/ds18x20-1.c **** static uint8_t DS18X20_meas_to_cel( uint8_t fc, uint8_t *sp,
+ 101:ds1820/ds18x20-1.c **** 		uint8_t* subzero, uint8_t* cel, uint8_t* cel_frac_bits)
+ 102:ds1820/ds18x20-1.c **** {
+ 103:ds1820/ds18x20-1.c **** 	uint16_t meas;
+ 104:ds1820/ds18x20-1.c **** 	uint8_t i;
+ 105:ds1820/ds18x20-1.c **** 
+ 106:ds1820/ds18x20-1.c **** 	meas = sp[0];  // LSB
+ 107:ds1820/ds18x20-1.c **** 	meas |= ( (uint16_t)sp[1] ) << 8;// MSB
+ 108:ds1820/ds18x20-1.c **** 
+ 109:ds1820/ds18x20-1.c **** 	//  only work on 12bit-base
+ 110:ds1820/ds18x20-1.c **** 	if( fc == DS18S20_FAMILY_CODE ) { // 9 -> 12 bit if 18S20
+ 111:ds1820/ds18x20-1.c **** 		/* Extended res. measurements for DS18S20 contributed by Carsten Foss */
+ 112:ds1820/ds18x20-1.c **** 		meas &= (uint16_t) 0xfffe;    // Discard LSB, needed for later extended precicion calc
+ 113:ds1820/ds18x20-1.c **** 		meas <<= 3;// Convert to 12-bit, now degrees are in 1/16 degrees units
+ 114:ds1820/ds18x20-1.c **** 		meas += ( 16 - sp[6] ) - 4;// Add the compensation and remember to subtract 0.25 degree (4/16)
+ 115:ds1820/ds18x20-1.c **** 	}
+ 116:ds1820/ds18x20-1.c **** 
+ 117:ds1820/ds18x20-1.c **** 	// check for negative
+ 118:ds1820/ds18x20-1.c **** 	if ( meas & 0x8000 ) {
+ 119:ds1820/ds18x20-1.c **** 		*subzero=1;      // mark negative
+ 120:ds1820/ds18x20-1.c **** 		meas ^= 0xffff;// convert to positive => (twos complement)++
+ 121:ds1820/ds18x20-1.c **** 		meas++;
+ 122:ds1820/ds18x20-1.c **** 	}
+ 123:ds1820/ds18x20-1.c **** 	else {
+ 124:ds1820/ds18x20-1.c **** 		*subzero=0;
+ 125:ds1820/ds18x20-1.c **** 	}
+ 126:ds1820/ds18x20-1.c **** 
+ 127:ds1820/ds18x20-1.c **** 	// clear undefined bits for B != 12bit
+ 128:ds1820/ds18x20-1.c **** 	if ( fc == DS18B20_FAMILY_CODE || fc == DS1822_FAMILY_CODE ) {
+ 129:ds1820/ds18x20-1.c **** 		i = sp[DS18B20_CONF_REG];
+ 130:ds1820/ds18x20-1.c **** 		if ( (i & DS18B20_12_BIT) == DS18B20_12_BIT ) {;}
+ 131:ds1820/ds18x20-1.c **** 		else if ( (i & DS18B20_11_BIT) == DS18B20_11_BIT ) {
+ 132:ds1820/ds18x20-1.c **** 			meas &= ~(DS18B20_11_BIT_UNDF);
+ 133:ds1820/ds18x20-1.c **** 		} else if ( (i & DS18B20_10_BIT) == DS18B20_10_BIT ) {
+ 134:ds1820/ds18x20-1.c **** 			meas &= ~(DS18B20_10_BIT_UNDF);
+ 135:ds1820/ds18x20-1.c **** 		} else { // if ( (i & DS18B20_9_BIT) == DS18B20_9_BIT ) {
+ 136:ds1820/ds18x20-1.c **** 			meas &= ~(DS18B20_9_BIT_UNDF);
+ 137:ds1820/ds18x20-1.c **** 		}
+ 138:ds1820/ds18x20-1.c **** 	}
+ 139:ds1820/ds18x20-1.c **** 
+ 140:ds1820/ds18x20-1.c **** 	*cel = (uint8_t)(meas >> 4);
+ 141:ds1820/ds18x20-1.c **** 	*cel_frac_bits = (uint8_t)(meas & 0x000F);
+ 142:ds1820/ds18x20-1.c **** 
+ 143:ds1820/ds18x20-1.c **** 	return DS18X20_OK;
+ 144:ds1820/ds18x20-1.c **** }
+ 145:ds1820/ds18x20-1.c **** 
+ 146:ds1820/ds18x20-1.c **** static void DS18X20_uart_put_temp(const uint8_t subzero,
+ 147:ds1820/ds18x20-1.c **** 		const uint8_t cel, const uint8_t cel_frac_bits)
+ 148:ds1820/ds18x20-1.c **** {
+ 149:ds1820/ds18x20-1.c **** 	char buffer[sizeof(int)*8+1];
+ 150:ds1820/ds18x20-1.c **** 	size_t i;
+ 151:ds1820/ds18x20-1.c **** 
+ 152:ds1820/ds18x20-1.c **** 	uart_putc((subzero)?'-':'+');
+ 153:ds1820/ds18x20-1.c **** 	uart_put_int((int)cel);
+ 154:ds1820/ds18x20-1.c **** 	uart_puts_P(".");
+ 155:ds1820/ds18x20-1.c **** 	itoa(cel_frac_bits*DS18X20_FRACCONV,buffer,10);
+ 156:ds1820/ds18x20-1.c **** 	for ( i = 0; i < 4-strlen(buffer); i++ ) {
+ 157:ds1820/ds18x20-1.c **** 		uart_puts_P("0");
+ 158:ds1820/ds18x20-1.c **** 	}
+ 159:ds1820/ds18x20-1.c **** 	uart_puts(buffer);
+ 160:ds1820/ds18x20-1.c **** 	uart_puts_P("�C");
+ 161:ds1820/ds18x20-1.c **** }
+ 162:ds1820/ds18x20-1.c **** 
+ 163:ds1820/ds18x20-1.c **** /* verbose output rom-search follows read-scratchpad in one loop */
+ 164:ds1820/ds18x20-1.c **** uint8_t DS18X20_read_meas_all_verbose( void )
+ 165:ds1820/ds18x20-1.c **** {
+ 166:ds1820/ds18x20-1.c **** 	uint8_t id[OW_ROMCODE_SIZE], sp[DS18X20_SP_SIZE], diff;
+ 167:ds1820/ds18x20-1.c **** 	uint8_t i;
+ 168:ds1820/ds18x20-1.c **** 	uint16_t meas;
+ 169:ds1820/ds18x20-1.c **** 	int16_t decicelsius;
+ 170:ds1820/ds18x20-1.c **** 	char s[10];
+ 171:ds1820/ds18x20-1.c **** 	uint8_t subzero, cel, cel_frac_bits;
+ 172:ds1820/ds18x20-1.c **** 
+ 173:ds1820/ds18x20-1.c **** 	for( diff = OW_SEARCH_FIRST; diff != OW_LAST_DEVICE; )
+ 174:ds1820/ds18x20-1.c **** 	{
+ 175:ds1820/ds18x20-1.c **** 		diff = ow_rom_search( diff, &id[0] );
+ 176:ds1820/ds18x20-1.c **** 
+ 177:ds1820/ds18x20-1.c **** 		if( diff == OW_PRESENCE_ERR ) {
+ 178:ds1820/ds18x20-1.c **** 			uart_puts_P( "No Sensor found\r" );
+ 179:ds1820/ds18x20-1.c **** 			return OW_PRESENCE_ERR; // <--- early exit!
+ 180:ds1820/ds18x20-1.c **** 		}
+ 181:ds1820/ds18x20-1.c **** 
+ 182:ds1820/ds18x20-1.c **** 		if( diff == OW_DATA_ERR ) {
+ 183:ds1820/ds18x20-1.c **** 			uart_puts_P( "Bus Error\r" );
+ 184:ds1820/ds18x20-1.c **** 			return OW_DATA_ERR;     // <--- early exit!
+ 185:ds1820/ds18x20-1.c **** 		}
+ 186:ds1820/ds18x20-1.c **** 
+ 187:ds1820/ds18x20-1.c **** 		DS18X20_show_id_uart( id, OW_ROMCODE_SIZE );
+ 188:ds1820/ds18x20-1.c **** 
+ 189:ds1820/ds18x20-1.c **** 		if( id[0] == DS18B20_FAMILY_CODE || id[0] == DS18S20_FAMILY_CODE ||
+ 190:ds1820/ds18x20-1.c **** 				id[0] == DS1822_FAMILY_CODE ) {
+ 191:ds1820/ds18x20-1.c **** 			// temperature sensor
+ 192:ds1820/ds18x20-1.c **** 
+ 193:ds1820/ds18x20-1.c **** 			uart_putc ('\r');
+ 194:ds1820/ds18x20-1.c **** 
+ 195:ds1820/ds18x20-1.c **** 			ow_byte_wr( DS18X20_READ );// read command
+ 196:ds1820/ds18x20-1.c **** 
+ 197:ds1820/ds18x20-1.c **** 			for ( i=0; i< DS18X20_SP_SIZE; i++ ) {
+ 198:ds1820/ds18x20-1.c **** 				sp[i]=ow_byte_rd();
+ 199:ds1820/ds18x20-1.c **** 			}
+ 200:ds1820/ds18x20-1.c **** 
+ 201:ds1820/ds18x20-1.c **** 			show_sp_uart( sp, DS18X20_SP_SIZE );
+ 202:ds1820/ds18x20-1.c **** 
+ 203:ds1820/ds18x20-1.c **** 			if ( crc8( &sp[0], DS18X20_SP_SIZE ) ) {
+ 204:ds1820/ds18x20-1.c **** 				uart_puts_P( " CRC FAIL " );
+ 205:ds1820/ds18x20-1.c **** 			} else {
+ 206:ds1820/ds18x20-1.c **** 				uart_puts_P( " CRC O.K. " );
+ 207:ds1820/ds18x20-1.c **** 			}
+ 208:ds1820/ds18x20-1.c **** 			uart_putc ('\r');
+ 209:ds1820/ds18x20-1.c **** 
+ 210:ds1820/ds18x20-1.c **** 			meas = sp[0]; // LSB Temp. from Scrachpad-Data
+ 211:ds1820/ds18x20-1.c **** 			meas |= (uint16_t) (sp[1] << 8);// MSB
+ 212:ds1820/ds18x20-1.c **** 
+ 213:ds1820/ds18x20-1.c **** 			uart_puts_P( " T_raw=");
+ 214:ds1820/ds18x20-1.c **** 			uart_puthex_byte( (uint8_t)(meas >> 8) );
+ 215:ds1820/ds18x20-1.c **** 			uart_puthex_byte( (uint8_t)meas );
+ 216:ds1820/ds18x20-1.c **** 			uart_puts_P( " " );
+ 217:ds1820/ds18x20-1.c **** 
+ 218:ds1820/ds18x20-1.c **** 			if( id[0] == DS18S20_FAMILY_CODE ) { // 18S20
+ 219:ds1820/ds18x20-1.c **** 				uart_puts_P( "S20/09" );
+ 220:ds1820/ds18x20-1.c **** 			}
+ 221:ds1820/ds18x20-1.c **** 			else if ( id[0] == DS18B20_FAMILY_CODE ||
+ 222:ds1820/ds18x20-1.c **** 					id[0] == DS1822_FAMILY_CODE ) { // 18B20 or 1822
+ 223:ds1820/ds18x20-1.c **** 				i=sp[DS18B20_CONF_REG];
+ 224:ds1820/ds18x20-1.c **** 				if ( (i & DS18B20_12_BIT) == DS18B20_12_BIT ) {
+ 225:ds1820/ds18x20-1.c **** 					uart_puts_P( "B20/12" );
+ 226:ds1820/ds18x20-1.c **** 				}
+ 227:ds1820/ds18x20-1.c **** 				else if ( (i & DS18B20_11_BIT) == DS18B20_11_BIT ) {
+ 228:ds1820/ds18x20-1.c **** 					uart_puts_P( "B20/11" );
+ 229:ds1820/ds18x20-1.c **** 				}
+ 230:ds1820/ds18x20-1.c **** 				else if ( (i & DS18B20_10_BIT) == DS18B20_10_BIT ) {
+ 231:ds1820/ds18x20-1.c **** 					uart_puts_P( " B20/10 " );
+ 232:ds1820/ds18x20-1.c **** 				}
+ 233:ds1820/ds18x20-1.c **** 				else { // if ( (i & DS18B20_9_BIT) == DS18B20_9_BIT ) {
+ 234:ds1820/ds18x20-1.c **** 					uart_puts_P( "B20/09" );
+ 235:ds1820/ds18x20-1.c **** 				}
+ 236:ds1820/ds18x20-1.c **** 			}
+ 237:ds1820/ds18x20-1.c **** 			uart_puts_P(" ");
+ 238:ds1820/ds18x20-1.c **** 
+ 239:ds1820/ds18x20-1.c **** 			DS18X20_meas_to_cel( id[0], sp, &subzero, &cel, &cel_frac_bits );
+ 240:ds1820/ds18x20-1.c **** 			DS18X20_uart_put_temp( subzero, cel, cel_frac_bits );
+ 241:ds1820/ds18x20-1.c **** 
+ 242:ds1820/ds18x20-1.c **** 			decicelsius = DS18X20_raw_to_decicelsius( id[0], sp );
+ 243:ds1820/ds18x20-1.c **** 			if ( decicelsius == DS18X20_INVALID_DECICELSIUS ) {
+ 244:ds1820/ds18x20-1.c **** 				uart_puts_P("* INVALID *");
+ 245:ds1820/ds18x20-1.c **** 			} else {
+ 246:ds1820/ds18x20-1.c **** 				uart_puts_P(" conv: ");
+ 247:ds1820/ds18x20-1.c **** 				uart_put_int(decicelsius);
+ 248:ds1820/ds18x20-1.c **** 				uart_puts_P(" deci�C ");
+ 249:ds1820/ds18x20-1.c **** 				DS18X20_format_from_decicelsius( decicelsius, s, 10 );
+ 250:ds1820/ds18x20-1.c **** 				uart_puts_P(" fmt: ");
+ 251:ds1820/ds18x20-1.c **** 				uart_puts(s);
+ 252:ds1820/ds18x20-1.c **** 				uart_puts_P(" �C ");
+ 253:ds1820/ds18x20-1.c **** 			}
+ 254:ds1820/ds18x20-1.c **** 
+ 255:ds1820/ds18x20-1.c **** 			uart_puts("\r");
+ 256:ds1820/ds18x20-1.c **** 
+ 257:ds1820/ds18x20-1.c **** 		} // if meas-sensor
+ 258:ds1820/ds18x20-1.c **** 
+ 259:ds1820/ds18x20-1.c **** 	} // loop all sensors
+ 260:ds1820/ds18x20-1.c **** 
+ 261:ds1820/ds18x20-1.c **** 	uart_puts_P( "\r" );
+ 262:ds1820/ds18x20-1.c **** 
+ 263:ds1820/ds18x20-1.c **** 	return DS18X20_OK;
+ 264:ds1820/ds18x20-1.c **** }
+ 265:ds1820/ds18x20-1.c **** 
+ 266:ds1820/ds18x20-1.c **** #endif /* DS18X20_VERBOSE */
+ 267:ds1820/ds18x20-1.c **** 
+ 268:ds1820/ds18x20-1.c **** #if DS18X20_VERBOSE
+ 269:ds1820/ds18x20-1.c **** #define uart_puts_P_verbose(s__) uart_puts_P(s__)
+ 270:ds1820/ds18x20-1.c **** #else
+ 271:ds1820/ds18x20-1.c **** #define uart_puts_P_verbose(s__)
+ 272:ds1820/ds18x20-1.c **** #endif
+ 273:ds1820/ds18x20-1.c **** 
+ 274:ds1820/ds18x20-1.c **** /*----------- end of "debug-functions" ---------------*/
+ 275:ds1820/ds18x20-1.c **** 
+ 276:ds1820/ds18x20-1.c **** /* find DS18X20 Sensors on 1-Wire-Bus
+ 277:ds1820/ds18x20-1.c ****  input/ouput: diff is the result of the last rom-search
+ 278:ds1820/ds18x20-1.c ****  *diff = OW_SEARCH_FIRST for first call
+ 279:ds1820/ds18x20-1.c ****  output: id is the rom-code of the sensor found */
+ 280:ds1820/ds18x20-1.c **** uint8_t DS18X20_find_sensor(uint8_t *diff, uint8_t id[]) {
+ 281:ds1820/ds18x20-1.c **** 	uint8_t go;
+ 282:ds1820/ds18x20-1.c **** 	uint8_t ret;
+ 283:ds1820/ds18x20-1.c **** 
+ 284:ds1820/ds18x20-1.c **** 	ret = DS18X20_OK;
+ 285:ds1820/ds18x20-1.c **** 	go = 1;
+ 286:ds1820/ds18x20-1.c **** 	do {
+ 287:ds1820/ds18x20-1.c **** 		*diff = ow_rom_search(*diff, &id[0]);
+ 288:ds1820/ds18x20-1.c **** 		if (*diff == OW_PRESENCE_ERR || *diff == OW_DATA_ERR || *diff == OW_LAST_DEVICE) {
+ 289:ds1820/ds18x20-1.c **** 			go = 0;
+ 290:ds1820/ds18x20-1.c **** 			ret = DS18X20_ERROR;
+ 291:ds1820/ds18x20-1.c **** 		} else {
+ 292:ds1820/ds18x20-1.c **** 			// if (id[0] == DS18B20_FAMILY_CODE || id[0] == DS18S20_FAMILY_CODE || id[0] == DS1822_FAMILY_CO
+ 293:ds1820/ds18x20-1.c **** 				go = 0;
+ 294:ds1820/ds18x20-1.c **** 			// }
+ 295:ds1820/ds18x20-1.c **** 		}
+ 296:ds1820/ds18x20-1.c **** 	} while (go);
+ 297:ds1820/ds18x20-1.c **** 
+ 298:ds1820/ds18x20-1.c **** 	return ret;
+ 299:ds1820/ds18x20-1.c **** }
+ 300:ds1820/ds18x20-1.c **** 
+ 301:ds1820/ds18x20-1.c **** /* get power status of DS18x20 
+ 302:ds1820/ds18x20-1.c ****  input:   id = rom_code
+ 303:ds1820/ds18x20-1.c ****  returns: DS18X20_POWER_EXTERN or DS18X20_POWER_PARASITE */
+ 304:ds1820/ds18x20-1.c **** uint8_t DS18X20_get_power_status(uint8_t id[]) {
+ 305:ds1820/ds18x20-1.c **** 	uint8_t pstat;
+ 306:ds1820/ds18x20-1.c **** 
+ 307:ds1820/ds18x20-1.c **** 	ow_reset();
+ 308:ds1820/ds18x20-1.c **** 	ow_command( DS18X20_READ_POWER_SUPPLY, id);
+ 309:ds1820/ds18x20-1.c **** 	pstat = ow_bit_io(1);
+ 310:ds1820/ds18x20-1.c **** 	ow_reset();
+ 311:ds1820/ds18x20-1.c **** 	return (pstat) ? DS18X20_POWER_EXTERN : DS18X20_POWER_PARASITE;
+ 312:ds1820/ds18x20-1.c **** }
+ 313:ds1820/ds18x20-1.c **** 
+ 314:ds1820/ds18x20-1.c **** /* start measurement (CONVERT_T) for all sensors if input id==NULL 
+ 315:ds1820/ds18x20-1.c ****  or for single sensor where id is the rom-code */
+ 316:ds1820/ds18x20-1.c **** uint8_t DS18X20_start_meas(uint8_t with_power_extern, uint8_t id[]) {
+ 317:ds1820/ds18x20-1.c **** 	uint8_t ret;
+ 318:ds1820/ds18x20-1.c **** 
+ 319:ds1820/ds18x20-1.c **** 	ow_reset();
+ 320:ds1820/ds18x20-1.c **** 	if (ow_input_pin_state()) { // only send if bus is "idle" = high
+ 321:ds1820/ds18x20-1.c **** 		if (with_power_extern != DS18X20_POWER_EXTERN) {
+ 322:ds1820/ds18x20-1.c **** 			ow_command_with_parasite_enable( DS18X20_CONVERT_T, id);
+ 323:ds1820/ds18x20-1.c **** 			/* not longer needed: ow_parasite_enable(); */
+ 324:ds1820/ds18x20-1.c **** 		} else {
+ 325:ds1820/ds18x20-1.c **** 			ow_command( DS18X20_CONVERT_T, id);
+ 326:ds1820/ds18x20-1.c **** 		}
+ 327:ds1820/ds18x20-1.c **** 		ret = DS18X20_OK;
+ 328:ds1820/ds18x20-1.c **** 	} else {
+ 329:ds1820/ds18x20-1.c **** 		uart_puts_P_verbose( "DS18X20_start_meas: Short Circuit!\r" );
+ 330:ds1820/ds18x20-1.c **** 		ret = DS18X20_START_FAIL;
+ 331:ds1820/ds18x20-1.c **** 	}
+ 332:ds1820/ds18x20-1.c **** 
+ 333:ds1820/ds18x20-1.c **** 	return ret;
+ 334:ds1820/ds18x20-1.c **** }
+ 335:ds1820/ds18x20-1.c **** 
+ 336:ds1820/ds18x20-1.c **** // returns 1 if conversion is in progress, 0 if finished
+ 337:ds1820/ds18x20-1.c **** // not available when parasite powered.
+ 338:ds1820/ds18x20-1.c **** uint8_t DS18X20_conversion_in_progress(void) {
+ 339:ds1820/ds18x20-1.c **** 	return ow_bit_io(1) ? DS18X20_CONVERSION_DONE : DS18X20_CONVERTING;
+ 340:ds1820/ds18x20-1.c **** }
+ 341:ds1820/ds18x20-1.c **** 
+ 342:ds1820/ds18x20-1.c **** static uint8_t read_scratchpad(uint8_t id[], uint8_t sp[], uint8_t n) {
+ 343:ds1820/ds18x20-1.c **** 	uint8_t i;
+ 344:ds1820/ds18x20-1.c **** 	uint8_t ret;
+ 345:ds1820/ds18x20-1.c **** 
+ 346:ds1820/ds18x20-1.c **** 	ow_command( DS18X20_READ, id);
+ 347:ds1820/ds18x20-1.c **** 	for (i = 0; i < n; i++) {
+ 348:ds1820/ds18x20-1.c **** 		sp[i] = ow_byte_rd();
+ 349:ds1820/ds18x20-1.c **** 	}
+ 350:ds1820/ds18x20-1.c **** 	if (crc8(&sp[0], DS18X20_SP_SIZE)) {
+ 351:ds1820/ds18x20-1.c **** 		ret = DS18X20_ERROR_CRC;
+ 352:ds1820/ds18x20-1.c **** 	} else {
+ 353:ds1820/ds18x20-1.c **** 		ret = DS18X20_OK;
+ 354:ds1820/ds18x20-1.c **** 	}
+ 355:ds1820/ds18x20-1.c **** 
+ 356:ds1820/ds18x20-1.c **** 	return ret;
+ 357:ds1820/ds18x20-1.c **** }
+ 358:ds1820/ds18x20-1.c **** 
+ 359:ds1820/ds18x20-1.c **** #if DS18X20_DECICELSIUS
+ 360:ds1820/ds18x20-1.c **** 
+ 361:ds1820/ds18x20-1.c **** /* convert scratchpad data to physical value in unit decicelsius */
+ 362:ds1820/ds18x20-1.c **** static int16_t DS18X20_raw_to_decicelsius(uint8_t familycode, uint8_t sp[]) {
+  14               		.loc 1 362 0
+  15               		.cfi_startproc
+  16               	.LVL0:
+  17               	/* prologue: function */
+  18               	/* frame size = 0 */
+  19               	/* stack size = 0 */
+  20               	.L__stack_usage = 0
+  21 0000 FB01      		movw r30,r22
+ 363:ds1820/ds18x20-1.c **** 	uint16_t measure;
+ 364:ds1820/ds18x20-1.c **** 	uint8_t negative;
+ 365:ds1820/ds18x20-1.c **** 	int16_t decicelsius;
+ 366:ds1820/ds18x20-1.c **** 	uint16_t fract;
+ 367:ds1820/ds18x20-1.c **** 
+ 368:ds1820/ds18x20-1.c **** 	measure = sp[0] | (sp[1] << 8);
+  22               		.loc 1 368 0
+  23 0002 2181      		ldd r18,Z+1
+  24 0004 30E0      		ldi r19,0
+  25 0006 322F      		mov r19,r18
+  26 0008 2227      		clr r18
+  27 000a 9081      		ld r25,Z
+  28 000c 292B      		or r18,r25
+  29               	.LVL1:
+ 369:ds1820/ds18x20-1.c **** 	//measure = 0xFF5E; // test -10.125
+ 370:ds1820/ds18x20-1.c **** 	//measure = 0xFE6F; // test -25.0625
+ 371:ds1820/ds18x20-1.c **** 
+ 372:ds1820/ds18x20-1.c **** 	if (familycode == DS18S20_FAMILY_CODE) {   // 9 -> 12 bit if 18S20
+  30               		.loc 1 372 0
+  31 000e 8031      		cpi r24,lo8(16)
+  32 0010 01F4      		brne .L2
+ 373:ds1820/ds18x20-1.c **** 		/* Extended measurements for DS18S20 contributed by Carsten Foss */
+ 374:ds1820/ds18x20-1.c **** 		measure &= (uint16_t) 0xfffe;   // Discard LSB, needed for later extended precicion calc
+  33               		.loc 1 374 0
+  34 0012 A901      		movw r20,r18
+  35 0014 4E7F      		andi r20,254
+  36               	.LVL2:
+ 375:ds1820/ds18x20-1.c **** 		measure <<= 3;                 // Convert to 12-bit, now degrees are in 1/16 degrees units
+  37               		.loc 1 375 0
+  38 0016 63E0      		ldi r22,3
+  39               		1:
+  40 0018 440F      		lsl r20
+  41 001a 551F      		rol r21
+  42 001c 6A95      		dec r22
+  43 001e 01F4      		brne 1b
+  44               	.LVL3:
+ 376:ds1820/ds18x20-1.c **** 		measure += (16 - sp[6]) - 4;   // Add the compensation and remember to subtract 0.25 degree (4/16
+  45               		.loc 1 376 0
+  46 0020 9681      		ldd r25,Z+6
+  47 0022 2CE0      		ldi r18,lo8(12)
+  48 0024 30E0      		ldi r19,0
+  49 0026 291B      		sub r18,r25
+  50 0028 3109      		sbc r19,__zero_reg__
+  51 002a 240F      		add r18,r20
+  52 002c 351F      		adc r19,r21
+  53               	.LVL4:
+  54               	.L2:
+ 377:ds1820/ds18x20-1.c **** 	}
+ 378:ds1820/ds18x20-1.c **** 
+ 379:ds1820/ds18x20-1.c **** 	// check for negative 
+ 380:ds1820/ds18x20-1.c **** 	if (measure & 0x8000) {
+  55               		.loc 1 380 0
+  56 002e 37FF      		sbrs r19,7
+  57 0030 00C0      		rjmp .L12
+  58               	.LVL5:
+ 381:ds1820/ds18x20-1.c **** 		negative = 1;       // mark negative
+ 382:ds1820/ds18x20-1.c **** 		measure ^= 0xffff;  // convert to positive => (twos complement)++
+ 383:ds1820/ds18x20-1.c **** 		measure++;
+  59               		.loc 1 383 0
+  60 0032 3195      		neg r19
+  61 0034 2195      		neg r18
+  62 0036 3109      		sbc r19,__zero_reg__
+  63               	.LVL6:
+ 381:ds1820/ds18x20-1.c **** 		negative = 1;       // mark negative
+  64               		.loc 1 381 0
+  65 0038 A1E0      		ldi r26,lo8(1)
+  66 003a 00C0      		rjmp .L3
+  67               	.LVL7:
+  68               	.L12:
+ 384:ds1820/ds18x20-1.c **** 	} else {
+ 385:ds1820/ds18x20-1.c **** 		negative = 0;
+  69               		.loc 1 385 0
+  70 003c A0E0      		ldi r26,0
+  71               	.L3:
+  72               	.LVL8:
+ 386:ds1820/ds18x20-1.c **** 	}
+ 387:ds1820/ds18x20-1.c **** 
+ 388:ds1820/ds18x20-1.c **** 	// clear undefined bits for DS18B20 != 12bit resolution
+ 389:ds1820/ds18x20-1.c **** 	if (familycode == DS18B20_FAMILY_CODE || familycode == DS1822_FAMILY_CODE) {
+  73               		.loc 1 389 0
+  74 003e 8832      		cpi r24,lo8(40)
+  75 0040 01F0      		breq .L4
+  76               		.loc 1 389 0 is_stmt 0 discriminator 1
+  77 0042 8232      		cpi r24,lo8(34)
+  78 0044 01F4      		brne .L5
+  79               	.L4:
+ 390:ds1820/ds18x20-1.c **** 		switch (sp[DS18B20_CONF_REG] & DS18B20_RES_MASK) {
+  80               		.loc 1 390 0 is_stmt 1
+  81 0046 8481      		ldd r24,Z+4
+  82               	.LVL9:
+  83 0048 8076      		andi r24,lo8(96)
+  84 004a 8032      		cpi r24,lo8(32)
+  85 004c 01F0      		breq .L6
+  86 004e 8034      		cpi r24,lo8(64)
+  87 0050 01F0      		breq .L7
+  88 0052 8111      		cpse r24,__zero_reg__
+  89 0054 00C0      		rjmp .L5
+ 391:ds1820/ds18x20-1.c **** 		case DS18B20_9_BIT:
+ 392:ds1820/ds18x20-1.c **** 			measure &= ~(DS18B20_9_BIT_UNDF);
+  90               		.loc 1 392 0
+  91 0056 287F      		andi r18,248
+  92               	.LVL10:
+ 393:ds1820/ds18x20-1.c **** 			break;
+  93               		.loc 1 393 0
+  94 0058 00C0      		rjmp .L5
+  95               	.L6:
+ 394:ds1820/ds18x20-1.c **** 		case DS18B20_10_BIT:
+ 395:ds1820/ds18x20-1.c **** 			measure &= ~(DS18B20_10_BIT_UNDF);
+  96               		.loc 1 395 0
+  97 005a 2C7F      		andi r18,252
+  98               	.LVL11:
+ 396:ds1820/ds18x20-1.c **** 			break;
+  99               		.loc 1 396 0
+ 100 005c 00C0      		rjmp .L5
+ 101               	.L7:
+ 397:ds1820/ds18x20-1.c **** 		case DS18B20_11_BIT:
+ 398:ds1820/ds18x20-1.c **** 			measure &= ~(DS18B20_11_BIT_UNDF);
+ 102               		.loc 1 398 0
+ 103 005e 2E7F      		andi r18,254
+ 104               	.LVL12:
+ 105               	.L5:
+ 399:ds1820/ds18x20-1.c **** 			break;
+ 400:ds1820/ds18x20-1.c **** 		default:
+ 401:ds1820/ds18x20-1.c **** 			// 12 bit - all bits valid
+ 402:ds1820/ds18x20-1.c **** 			break;
+ 403:ds1820/ds18x20-1.c **** 		}
+ 404:ds1820/ds18x20-1.c **** 	}
+ 405:ds1820/ds18x20-1.c **** 
+ 406:ds1820/ds18x20-1.c **** 	decicelsius = (measure >> 4);
+ 106               		.loc 1 406 0
+ 107 0060 C901      		movw r24,r18
+ 108 0062 44E0      		ldi r20,4
+ 109               		1:
+ 110 0064 9695      		lsr r25
+ 111 0066 8795      		ror r24
+ 112 0068 4A95      		dec r20
+ 113 006a 01F4      		brne 1b
+ 114               	.LVL13:
+ 407:ds1820/ds18x20-1.c **** 	decicelsius *= 10;
+ 115               		.loc 1 407 0
+ 116 006c 6AE0      		ldi r22,lo8(10)
+ 117 006e 689F      		mul r22,r24
+ 118 0070 A001      		movw r20,r0
+ 119 0072 699F      		mul r22,r25
+ 120 0074 500D      		add r21,r0
+ 121 0076 1124      		clr __zero_reg__
+ 122               	.LVL14:
+ 408:ds1820/ds18x20-1.c **** 
+ 409:ds1820/ds18x20-1.c **** 	// decicelsius += ((measure & 0x000F) * 640 + 512) / 1024;
+ 410:ds1820/ds18x20-1.c **** 	// 625/1000 = 640/1024
+ 411:ds1820/ds18x20-1.c **** 	fract = (measure & 0x000F) * 640;
+ 123               		.loc 1 411 0
+ 124 0078 2F70      		andi r18,15
+ 125 007a 3327      		clr r19
+ 126               	.LVL15:
+ 127 007c 60E8      		ldi r22,lo8(-128)
+ 128 007e 72E0      		ldi r23,lo8(2)
+ 129 0080 269F      		mul r18,r22
+ 130 0082 C001      		movw r24,r0
+ 131 0084 279F      		mul r18,r23
+ 132 0086 900D      		add r25,r0
+ 133 0088 369F      		mul r19,r22
+ 134 008a 900D      		add r25,r0
+ 135 008c 1124      		clr r1
+ 136               	.LVL16:
+ 412:ds1820/ds18x20-1.c **** 	if (!negative) {
+ 137               		.loc 1 412 0
+ 138 008e A111      		cpse r26,__zero_reg__
+ 139 0090 00C0      		rjmp .L9
+ 413:ds1820/ds18x20-1.c **** 		fract += 512;
+ 140               		.loc 1 413 0
+ 141 0092 9E5F      		subi r25,-2
+ 142               	.LVL17:
+ 143               	.L9:
+ 414:ds1820/ds18x20-1.c **** 	}
+ 415:ds1820/ds18x20-1.c **** 	fract /= 1024;
+ 144               		.loc 1 415 0
+ 145 0094 9C01      		movw r18,r24
+ 146 0096 232F      		mov r18,r19
+ 147 0098 3327      		clr r19
+ 148 009a 2695      		lsr r18
+ 149 009c 2695      		lsr r18
+ 150               	.LVL18:
+ 416:ds1820/ds18x20-1.c **** 	decicelsius += fract;
+ 151               		.loc 1 416 0
+ 152 009e 240F      		add r18,r20
+ 153 00a0 351F      		adc r19,r21
+ 154               	.LVL19:
+ 417:ds1820/ds18x20-1.c **** 
+ 418:ds1820/ds18x20-1.c **** 	if (negative) {
+ 155               		.loc 1 418 0
+ 156 00a2 AA23      		tst r26
+ 157 00a4 01F0      		breq .L10
+ 419:ds1820/ds18x20-1.c **** 		decicelsius = -decicelsius;
+ 158               		.loc 1 419 0
+ 159 00a6 3195      		neg r19
+ 160 00a8 2195      		neg r18
+ 161 00aa 3109      		sbc r19,__zero_reg__
+ 162               	.LVL20:
+ 163               	.L10:
+ 420:ds1820/ds18x20-1.c **** 	}
+ 421:ds1820/ds18x20-1.c **** 
+ 422:ds1820/ds18x20-1.c **** 	if ( /* decicelsius == 850 || */decicelsius < -550 || decicelsius > 1250) {
+ 164               		.loc 1 422 0
+ 165 00ac C901      		movw r24,r18
+ 166 00ae 8A5D      		subi r24,-38
+ 167 00b0 9D4F      		sbci r25,-3
+ 168 00b2 8930      		cpi r24,9
+ 169 00b4 9740      		sbci r25,7
+ 170 00b6 00F0      		brlo .L13
+ 423:ds1820/ds18x20-1.c **** 		return DS18X20_INVALID_DECICELSIUS;
+ 171               		.loc 1 423 0
+ 172 00b8 80ED      		ldi r24,lo8(-48)
+ 173 00ba 97E0      		ldi r25,lo8(7)
+ 174 00bc 0895      		ret
+ 175               	.L13:
+ 176 00be C901      		movw r24,r18
+ 424:ds1820/ds18x20-1.c **** 	} else {
+ 425:ds1820/ds18x20-1.c **** 		return decicelsius;
+ 426:ds1820/ds18x20-1.c **** 	}
+ 427:ds1820/ds18x20-1.c **** }
+ 177               		.loc 1 427 0
+ 178 00c0 0895      		ret
+ 179               		.cfi_endproc
+ 180               	.LFE6:
+ 183               	read_scratchpad.constprop.0:
+ 184               	.LFB10:
+ 342:ds1820/ds18x20-1.c **** static uint8_t read_scratchpad(uint8_t id[], uint8_t sp[], uint8_t n) {
+ 185               		.loc 1 342 0
+ 186               		.cfi_startproc
+ 187               	.LVL21:
+ 188 00c2 FF92      		push r15
+ 189               	.LCFI0:
+ 190               		.cfi_def_cfa_offset 3
+ 191               		.cfi_offset 15, -2
+ 192 00c4 0F93      		push r16
+ 193               	.LCFI1:
+ 194               		.cfi_def_cfa_offset 4
+ 195               		.cfi_offset 16, -3
+ 196 00c6 1F93      		push r17
+ 197               	.LCFI2:
+ 198               		.cfi_def_cfa_offset 5
+ 199               		.cfi_offset 17, -4
+ 200 00c8 CF93      		push r28
+ 201               	.LCFI3:
+ 202               		.cfi_def_cfa_offset 6
+ 203               		.cfi_offset 28, -5
+ 204 00ca DF93      		push r29
+ 205               	.LCFI4:
+ 206               		.cfi_def_cfa_offset 7
+ 207               		.cfi_offset 29, -6
+ 208               	/* prologue: function */
+ 209               	/* frame size = 0 */
+ 210               	/* stack size = 5 */
+ 211               	.L__stack_usage = 5
+ 212 00cc 062F      		mov r16,r22
+ 213 00ce F72E      		mov r15,r23
+ 214               	.LVL22:
+ 346:ds1820/ds18x20-1.c **** 	ow_command( DS18X20_READ, id);
+ 215               		.loc 1 346 0
+ 216 00d0 BC01      		movw r22,r24
+ 217               	.LVL23:
+ 218 00d2 8EEB      		ldi r24,lo8(-66)
+ 219               	.LVL24:
+ 220 00d4 00D0      		rcall ow_command
+ 221               	.LVL25:
+ 222 00d6 C02F      		mov r28,r16
+ 223 00d8 DF2D      		mov r29,r15
+ 224 00da 19E0      		ldi r17,lo8(9)
+ 225               	.LVL26:
+ 226               	.L23:
+ 348:ds1820/ds18x20-1.c **** 		sp[i] = ow_byte_rd();
+ 227               		.loc 1 348 0
+ 228 00dc 00D0      		rcall ow_byte_rd
+ 229               	.LVL27:
+ 230 00de 8993      		st Y+,r24
+ 231               	.LVL28:
+ 232 00e0 1150      		subi r17,lo8(-(-1))
+ 347:ds1820/ds18x20-1.c **** 	for (i = 0; i < n; i++) {
+ 233               		.loc 1 347 0
+ 234 00e2 01F4      		brne .L23
+ 350:ds1820/ds18x20-1.c **** 	if (crc8(&sp[0], DS18X20_SP_SIZE)) {
+ 235               		.loc 1 350 0
+ 236 00e4 69E0      		ldi r22,lo8(9)
+ 237 00e6 70E0      		ldi r23,0
+ 238 00e8 802F      		mov r24,r16
+ 239 00ea 9F2D      		mov r25,r15
+ 240 00ec 00D0      		rcall crc8
+ 241               	.LVL29:
+ 242 00ee 8823      		tst r24
+ 243 00f0 01F0      		breq .L25
+ 351:ds1820/ds18x20-1.c **** 		ret = DS18X20_ERROR_CRC;
+ 244               		.loc 1 351 0
+ 245 00f2 83E0      		ldi r24,lo8(3)
+ 246 00f4 00C0      		rjmp .L24
+ 247               	.L25:
+ 353:ds1820/ds18x20-1.c **** 		ret = DS18X20_OK;
+ 248               		.loc 1 353 0
+ 249 00f6 80E0      		ldi r24,0
+ 250               	.L24:
+ 251               	.LVL30:
+ 252               	/* epilogue start */
+ 357:ds1820/ds18x20-1.c **** }
+ 253               		.loc 1 357 0
+ 254 00f8 DF91      		pop r29
+ 255 00fa CF91      		pop r28
+ 256               	.LVL31:
+ 257 00fc 1F91      		pop r17
+ 258 00fe 0F91      		pop r16
+ 259 0100 FF90      		pop r15
+ 260 0102 0895      		ret
+ 261               		.cfi_endproc
+ 262               	.LFE10:
+ 264               	.global	DS18X20_find_sensor
+ 266               	DS18X20_find_sensor:
+ 267               	.LFB1:
+ 280:ds1820/ds18x20-1.c **** uint8_t DS18X20_find_sensor(uint8_t *diff, uint8_t id[]) {
+ 268               		.loc 1 280 0
+ 269               		.cfi_startproc
+ 270               	.LVL32:
+ 271 0104 CF93      		push r28
+ 272               	.LCFI5:
+ 273               		.cfi_def_cfa_offset 3
+ 274               		.cfi_offset 28, -2
+ 275 0106 DF93      		push r29
+ 276               	.LCFI6:
+ 277               		.cfi_def_cfa_offset 4
+ 278               		.cfi_offset 29, -3
+ 279               	/* prologue: function */
+ 280               	/* frame size = 0 */
+ 281               	/* stack size = 2 */
+ 282               	.L__stack_usage = 2
+ 283 0108 EC01      		movw r28,r24
+ 284               	.LVL33:
+ 287:ds1820/ds18x20-1.c **** 		*diff = ow_rom_search(*diff, &id[0]);
+ 285               		.loc 1 287 0
+ 286 010a 8881      		ld r24,Y
+ 287               	.LVL34:
+ 288 010c 00D0      		rcall ow_rom_search
+ 289               	.LVL35:
+ 290 010e 8883      		st Y,r24
+ 291               	.LVL36:
+ 288:ds1820/ds18x20-1.c **** 		if (*diff == OW_PRESENCE_ERR || *diff == OW_DATA_ERR || *diff == OW_LAST_DEVICE) {
+ 292               		.loc 1 288 0
+ 293 0110 9FEF      		ldi r25,lo8(-1)
+ 294 0112 980F      		add r25,r24
+ 295 0114 81E0      		ldi r24,lo8(1)
+ 296               	.LVL37:
+ 297 0116 9D3F      		cpi r25,lo8(-3)
+ 298 0118 00F4      		brsh .L27
+ 299 011a 80E0      		ldi r24,0
+ 300               	.L27:
+ 301               	/* epilogue start */
+ 299:ds1820/ds18x20-1.c **** }
+ 302               		.loc 1 299 0
+ 303 011c DF91      		pop r29
+ 304 011e CF91      		pop r28
+ 305               	.LVL38:
+ 306 0120 0895      		ret
+ 307               		.cfi_endproc
+ 308               	.LFE1:
+ 310               	.global	DS18X20_get_power_status
+ 312               	DS18X20_get_power_status:
+ 313               	.LFB2:
+ 304:ds1820/ds18x20-1.c **** uint8_t DS18X20_get_power_status(uint8_t id[]) {
+ 314               		.loc 1 304 0
+ 315               		.cfi_startproc
+ 316               	.LVL39:
+ 317 0122 CF93      		push r28
+ 318               	.LCFI7:
+ 319               		.cfi_def_cfa_offset 3
+ 320               		.cfi_offset 28, -2
+ 321 0124 DF93      		push r29
+ 322               	.LCFI8:
+ 323               		.cfi_def_cfa_offset 4
+ 324               		.cfi_offset 29, -3
+ 325               	/* prologue: function */
+ 326               	/* frame size = 0 */
+ 327               	/* stack size = 2 */
+ 328               	.L__stack_usage = 2
+ 329 0126 EC01      		movw r28,r24
+ 307:ds1820/ds18x20-1.c **** 	ow_reset();
+ 330               		.loc 1 307 0
+ 331 0128 00D0      		rcall ow_reset
+ 332               	.LVL40:
+ 308:ds1820/ds18x20-1.c **** 	ow_command( DS18X20_READ_POWER_SUPPLY, id);
+ 333               		.loc 1 308 0
+ 334 012a BE01      		movw r22,r28
+ 335 012c 84EB      		ldi r24,lo8(-76)
+ 336 012e 00D0      		rcall ow_command
+ 337               	.LVL41:
+ 309:ds1820/ds18x20-1.c **** 	pstat = ow_bit_io(1);
+ 338               		.loc 1 309 0
+ 339 0130 81E0      		ldi r24,lo8(1)
+ 340 0132 00D0      		rcall ow_bit_io
+ 341               	.LVL42:
+ 342 0134 C82F      		mov r28,r24
+ 343               	.LVL43:
+ 310:ds1820/ds18x20-1.c **** 	ow_reset();
+ 344               		.loc 1 310 0
+ 345 0136 00D0      		rcall ow_reset
+ 346               	.LVL44:
+ 311:ds1820/ds18x20-1.c **** 	return (pstat) ? DS18X20_POWER_EXTERN : DS18X20_POWER_PARASITE;
+ 347               		.loc 1 311 0
+ 348 0138 81E0      		ldi r24,lo8(1)
+ 349 013a C111      		cpse r28,__zero_reg__
+ 350 013c 00C0      		rjmp .L29
+ 351 013e 80E0      		ldi r24,0
+ 352               	.L29:
+ 353               	/* epilogue start */
+ 312:ds1820/ds18x20-1.c **** }
+ 354               		.loc 1 312 0
+ 355 0140 DF91      		pop r29
+ 356 0142 CF91      		pop r28
+ 357               	.LVL45:
+ 358 0144 0895      		ret
+ 359               		.cfi_endproc
+ 360               	.LFE2:
+ 362               	.global	DS18X20_start_meas
+ 364               	DS18X20_start_meas:
+ 365               	.LFB3:
+ 316:ds1820/ds18x20-1.c **** uint8_t DS18X20_start_meas(uint8_t with_power_extern, uint8_t id[]) {
+ 366               		.loc 1 316 0
+ 367               		.cfi_startproc
+ 368               	.LVL46:
+ 369 0146 1F93      		push r17
+ 370               	.LCFI9:
+ 371               		.cfi_def_cfa_offset 3
+ 372               		.cfi_offset 17, -2
+ 373 0148 CF93      		push r28
+ 374               	.LCFI10:
+ 375               		.cfi_def_cfa_offset 4
+ 376               		.cfi_offset 28, -3
+ 377 014a DF93      		push r29
+ 378               	.LCFI11:
+ 379               		.cfi_def_cfa_offset 5
+ 380               		.cfi_offset 29, -4
+ 381 014c 00D0      		rcall .
+ 382               	.LCFI12:
+ 383               		.cfi_def_cfa_offset 7
+ 384 014e CDB7      		in r28,__SP_L__
+ 385 0150 DEB7      		in r29,__SP_H__
+ 386               	.LCFI13:
+ 387               		.cfi_def_cfa_register 28
+ 388               	/* prologue: function */
+ 389               	/* frame size = 2 */
+ 390               	/* stack size = 5 */
+ 391               	.L__stack_usage = 5
+ 392 0152 182F      		mov r17,r24
+ 319:ds1820/ds18x20-1.c **** 	ow_reset();
+ 393               		.loc 1 319 0
+ 394 0154 6983      		std Y+1,r22
+ 395 0156 7A83      		std Y+2,r23
+ 396 0158 00D0      		rcall ow_reset
+ 397               	.LVL47:
+ 320:ds1820/ds18x20-1.c **** 	if (ow_input_pin_state()) { // only send if bus is "idle" = high
+ 398               		.loc 1 320 0
+ 399 015a 00D0      		rcall ow_input_pin_state
+ 400               	.LVL48:
+ 401 015c 6981      		ldd r22,Y+1
+ 402 015e 7A81      		ldd r23,Y+2
+ 403 0160 8823      		tst r24
+ 404 0162 01F0      		breq .L33
+ 322:ds1820/ds18x20-1.c **** 			ow_command_with_parasite_enable( DS18X20_CONVERT_T, id);
+ 405               		.loc 1 322 0
+ 406 0164 84E4      		ldi r24,lo8(68)
+ 321:ds1820/ds18x20-1.c **** 		if (with_power_extern != DS18X20_POWER_EXTERN) {
+ 407               		.loc 1 321 0
+ 408 0166 1130      		cpi r17,lo8(1)
+ 409 0168 01F0      		breq .L32
+ 322:ds1820/ds18x20-1.c **** 			ow_command_with_parasite_enable( DS18X20_CONVERT_T, id);
+ 410               		.loc 1 322 0
+ 411 016a 00D0      		rcall ow_command_with_parasite_enable
+ 412               	.LVL49:
+ 413 016c 00C0      		rjmp .L34
+ 414               	.L32:
+ 325:ds1820/ds18x20-1.c **** 			ow_command( DS18X20_CONVERT_T, id);
+ 415               		.loc 1 325 0
+ 416 016e 00D0      		rcall ow_command
+ 417               	.LVL50:
+ 418               	.L34:
+ 327:ds1820/ds18x20-1.c **** 		ret = DS18X20_OK;
+ 419               		.loc 1 327 0
+ 420 0170 80E0      		ldi r24,0
+ 421 0172 00C0      		rjmp .L31
+ 422               	.L33:
+ 330:ds1820/ds18x20-1.c **** 		ret = DS18X20_START_FAIL;
+ 423               		.loc 1 330 0
+ 424 0174 82E0      		ldi r24,lo8(2)
+ 425               	.L31:
+ 426               	.LVL51:
+ 427               	/* epilogue start */
+ 334:ds1820/ds18x20-1.c **** }
+ 428               		.loc 1 334 0
+ 429 0176 0F90      		pop __tmp_reg__
+ 430 0178 0F90      		pop __tmp_reg__
+ 431 017a DF91      		pop r29
+ 432 017c CF91      		pop r28
+ 433 017e 1F91      		pop r17
+ 434               	.LVL52:
+ 435 0180 0895      		ret
+ 436               		.cfi_endproc
+ 437               	.LFE3:
+ 439               	.global	DS18X20_conversion_in_progress
+ 441               	DS18X20_conversion_in_progress:
+ 442               	.LFB4:
+ 338:ds1820/ds18x20-1.c **** uint8_t DS18X20_conversion_in_progress(void) {
+ 443               		.loc 1 338 0
+ 444               		.cfi_startproc
+ 445               	/* prologue: function */
+ 446               	/* frame size = 0 */
+ 447               	/* stack size = 0 */
+ 448               	.L__stack_usage = 0
+ 339:ds1820/ds18x20-1.c **** 	return ow_bit_io(1) ? DS18X20_CONVERSION_DONE : DS18X20_CONVERTING;
+ 449               		.loc 1 339 0
+ 450 0182 81E0      		ldi r24,lo8(1)
+ 451 0184 00D0      		rcall ow_bit_io
+ 452               	.LVL53:
+ 453 0186 91E0      		ldi r25,lo8(1)
+ 454 0188 8111      		cpse r24,__zero_reg__
+ 455 018a 90E0      		ldi r25,0
+ 456               	.L36:
+ 340:ds1820/ds18x20-1.c **** }
+ 457               		.loc 1 340 0
+ 458 018c 892F      		mov r24,r25
+ 459 018e 0895      		ret
+ 460               		.cfi_endproc
+ 461               	.LFE4:
+ 463               	.global	DS18X20_format_from_decicelsius
+ 465               	DS18X20_format_from_decicelsius:
+ 466               	.LFB7:
+ 428:ds1820/ds18x20-1.c **** 
+ 429:ds1820/ds18x20-1.c **** /* format decicelsius-value into string, itoa method inspired 
+ 430:ds1820/ds18x20-1.c ****  by code from Chris Takahashi for the MSP430 libc, BSD-license
+ 431:ds1820/ds18x20-1.c ****  modifications mthomas: variable-types, fixed radix 10, use div(),
+ 432:ds1820/ds18x20-1.c ****  insert decimal-point */
+ 433:ds1820/ds18x20-1.c **** uint8_t DS18X20_format_from_decicelsius(int16_t decicelsius, char str[], uint8_t n) {
+ 467               		.loc 1 433 0
+ 468               		.cfi_startproc
+ 469               	.LVL54:
+ 470 0190 EF92      		push r14
+ 471               	.LCFI14:
+ 472               		.cfi_def_cfa_offset 3
+ 473               		.cfi_offset 14, -2
+ 474 0192 FF92      		push r15
+ 475               	.LCFI15:
+ 476               		.cfi_def_cfa_offset 4
+ 477               		.cfi_offset 15, -3
+ 478 0194 0F93      		push r16
+ 479               	.LCFI16:
+ 480               		.cfi_def_cfa_offset 5
+ 481               		.cfi_offset 16, -4
+ 482 0196 1F93      		push r17
+ 483               	.LCFI17:
+ 484               		.cfi_def_cfa_offset 6
+ 485               		.cfi_offset 17, -5
+ 486 0198 CF93      		push r28
+ 487               	.LCFI18:
+ 488               		.cfi_def_cfa_offset 7
+ 489               		.cfi_offset 28, -6
+ 490 019a DF93      		push r29
+ 491               	.LCFI19:
+ 492               		.cfi_def_cfa_offset 8
+ 493               		.cfi_offset 29, -7
+ 494 019c CDB7      		in r28,__SP_L__
+ 495 019e DEB7      		in r29,__SP_H__
+ 496               	.LCFI20:
+ 497               		.cfi_def_cfa_register 28
+ 498 01a0 2797      		sbiw r28,7
+ 499               	.LCFI21:
+ 500               		.cfi_def_cfa_offset 15
+ 501 01a2 0FB6      		in __tmp_reg__,__SREG__
+ 502 01a4 F894      		cli
+ 503 01a6 DEBF      		out __SP_H__,r29
+ 504 01a8 0FBE      		out __SREG__,__tmp_reg__
+ 505 01aa CDBF      		out __SP_L__,r28
+ 506               	/* prologue: function */
+ 507               	/* frame size = 7 */
+ 508               	/* stack size = 13 */
+ 509               	.L__stack_usage = 13
+ 510 01ac 8B01      		movw r16,r22
+ 511               	.LVL55:
+ 434:ds1820/ds18x20-1.c **** 	uint8_t sign = 0;
+ 435:ds1820/ds18x20-1.c **** 	char temp[7];
+ 436:ds1820/ds18x20-1.c **** 	int8_t temp_loc = 0;
+ 437:ds1820/ds18x20-1.c **** 	uint8_t str_loc = 0;
+ 438:ds1820/ds18x20-1.c **** 	div_t dt;
+ 439:ds1820/ds18x20-1.c **** 	uint8_t ret;
+ 440:ds1820/ds18x20-1.c **** 
+ 441:ds1820/ds18x20-1.c **** 	// range from -550:-55.0�C to 1250:+125.0�C -> min. 6+1 chars
+ 442:ds1820/ds18x20-1.c **** 	if (n >= (6 + 1) && decicelsius > -1000 && decicelsius < 10000) {
+ 512               		.loc 1 442 0
+ 513 01ae 4730      		cpi r20,lo8(7)
+ 514 01b0 00F4      		brsh .+2
+ 515 01b2 00C0      		rjmp .L51
+ 516               		.loc 1 442 0 is_stmt 0 discriminator 1
+ 517 01b4 9C01      		movw r18,r24
+ 518 01b6 2951      		subi r18,25
+ 519 01b8 3C4F      		sbci r19,-4
+ 520 01ba 273F      		cpi r18,-9
+ 521 01bc 3A42      		sbci r19,42
+ 522               	.LVL56:
+ 523 01be 00F0      		brlo .+2
+ 524 01c0 00C0      		rjmp .L51
+ 443:ds1820/ds18x20-1.c **** 
+ 444:ds1820/ds18x20-1.c **** 		if (decicelsius < 0) {
+ 525               		.loc 1 444 0 is_stmt 1
+ 526 01c2 97FF      		sbrs r25,7
+ 527 01c4 00C0      		rjmp .L52
+ 528               	.LVL57:
+ 445:ds1820/ds18x20-1.c **** 			sign = 1;
+ 446:ds1820/ds18x20-1.c **** 			decicelsius = -decicelsius;
+ 529               		.loc 1 446 0
+ 530 01c6 9195      		neg r25
+ 531 01c8 8195      		neg r24
+ 532 01ca 9109      		sbc r25,__zero_reg__
+ 533               	.LVL58:
+ 445:ds1820/ds18x20-1.c **** 			sign = 1;
+ 534               		.loc 1 445 0
+ 535 01cc EE24      		clr r14
+ 536 01ce E394      		inc r14
+ 537 01d0 00C0      		rjmp .L42
+ 538               	.LVL59:
+ 539               	.L52:
+ 434:ds1820/ds18x20-1.c **** 	uint8_t sign = 0;
+ 540               		.loc 1 434 0
+ 541 01d2 E12C      		mov r14,__zero_reg__
+ 542               	.LVL60:
+ 543               	.L42:
+ 445:ds1820/ds18x20-1.c **** 			sign = 1;
+ 544               		.loc 1 445 0 discriminator 1
+ 545 01d4 F12C      		mov r15,__zero_reg__
+ 546               	.LVL61:
+ 547               	.L44:
+ 447:ds1820/ds18x20-1.c **** 		}
+ 448:ds1820/ds18x20-1.c **** 
+ 449:ds1820/ds18x20-1.c **** 		// construct a backward string of the number.
+ 450:ds1820/ds18x20-1.c **** 		do {
+ 451:ds1820/ds18x20-1.c **** 			dt = div(decicelsius, 10);
+ 548               		.loc 1 451 0 discriminator 1
+ 549 01d6 6AE0      		ldi r22,lo8(10)
+ 550 01d8 70E0      		ldi r23,0
+ 551 01da 00D0      		rcall __divmodhi4
+ 552               	.LVL62:
+ 553 01dc 21E0      		ldi r18,lo8(1)
+ 554 01de 2F0D      		add r18,r15
+ 555               	.LVL63:
+ 452:ds1820/ds18x20-1.c **** 			temp[temp_loc++] = dt.rem + '0';
+ 556               		.loc 1 452 0 discriminator 1
+ 557 01e0 E1E0      		ldi r30,lo8(1)
+ 558 01e2 F0E0      		ldi r31,0
+ 559 01e4 EC0F      		add r30,r28
+ 560 01e6 FD1F      		adc r31,r29
+ 561 01e8 EF0D      		add r30,r15
+ 562 01ea F11D      		adc r31,__zero_reg__
+ 563 01ec F7FC      		sbrc r15,7
+ 564 01ee FA95      		dec r31
+ 565 01f0 805D      		subi r24,lo8(-(48))
+ 566 01f2 8083      		st Z,r24
+ 453:ds1820/ds18x20-1.c **** 			decicelsius = dt.quot;
+ 567               		.loc 1 453 0 discriminator 1
+ 568 01f4 862F      		mov r24,r22
+ 569 01f6 972F      		mov r25,r23
+ 570               	.LVL64:
+ 454:ds1820/ds18x20-1.c **** 		} while (decicelsius > 0);
+ 571               		.loc 1 454 0 discriminator 1
+ 572 01f8 1816      		cp __zero_reg__,r24
+ 573 01fa 1906      		cpc __zero_reg__,r25
+ 574 01fc 04F4      		brge .L43
+ 452:ds1820/ds18x20-1.c **** 			temp[temp_loc++] = dt.rem + '0';
+ 575               		.loc 1 452 0
+ 576 01fe F22E      		mov r15,r18
+ 577 0200 00C0      		rjmp .L44
+ 578               	.L43:
+ 579 0202 822F      		mov r24,r18
+ 580 0204 9927      		clr r25
+ 581 0206 87FD      		sbrc r24,7
+ 582 0208 9095      		com r25
+ 455:ds1820/ds18x20-1.c **** 
+ 456:ds1820/ds18x20-1.c **** 		if (sign) {
+ 457:ds1820/ds18x20-1.c **** 			temp[temp_loc] = '-';
+ 583               		.loc 1 457 0
+ 584 020a E1E0      		ldi r30,lo8(1)
+ 585 020c F0E0      		ldi r31,0
+ 586 020e EC0F      		add r30,r28
+ 587 0210 FD1F      		adc r31,r29
+ 588 0212 E80F      		add r30,r24
+ 589 0214 F91F      		adc r31,r25
+ 456:ds1820/ds18x20-1.c **** 		if (sign) {
+ 590               		.loc 1 456 0
+ 591 0216 EE20      		tst r14
+ 592 0218 01F0      		breq .L45
+ 593               		.loc 1 457 0
+ 594 021a 3DE2      		ldi r19,lo8(45)
+ 595               	.L53:
+ 596 021c 3083      		st Z,r19
+ 458:ds1820/ds18x20-1.c **** 		} else {
+ 459:ds1820/ds18x20-1.c **** 			///temp_loc--;
+ 460:ds1820/ds18x20-1.c **** 			temp[temp_loc] = '+';
+ 461:ds1820/ds18x20-1.c **** 		}
+ 462:ds1820/ds18x20-1.c **** 
+ 463:ds1820/ds18x20-1.c **** 		// reverse the string.into the output
+ 464:ds1820/ds18x20-1.c **** 		while (temp_loc >= 0) {
+ 465:ds1820/ds18x20-1.c **** 			str[str_loc++] = temp[(uint8_t) temp_loc--];
+ 466:ds1820/ds18x20-1.c **** 			if (temp_loc == 0) {
+ 467:ds1820/ds18x20-1.c **** 				str[str_loc++] = DS18X20_DECIMAL_CHAR;
+ 597               		.loc 1 467 0
+ 598 021e 30E0      		ldi r19,0
+ 599 0220 6EE2      		ldi r22,lo8(46)
+ 600               	.LVL65:
+ 601 0222 00C0      		rjmp .L46
+ 602               	.LVL66:
+ 603               	.L45:
+ 460:ds1820/ds18x20-1.c **** 			temp[temp_loc] = '+';
+ 604               		.loc 1 460 0
+ 605 0224 3BE2      		ldi r19,lo8(43)
+ 606 0226 00C0      		rjmp .L53
+ 607               	.LVL67:
+ 608               	.L49:
+ 465:ds1820/ds18x20-1.c **** 			str[str_loc++] = temp[(uint8_t) temp_loc--];
+ 609               		.loc 1 465 0
+ 610 0228 41E0      		ldi r20,lo8(1)
+ 611 022a 430F      		add r20,r19
+ 612               	.LVL68:
+ 613 022c 5FEF      		ldi r21,lo8(-1)
+ 614 022e 520F      		add r21,r18
+ 615               	.LVL69:
+ 616 0230 D801      		movw r26,r16
+ 617 0232 A80F      		add r26,r24
+ 618 0234 B91F      		adc r27,r25
+ 619 0236 E1E0      		ldi r30,lo8(1)
+ 620 0238 F0E0      		ldi r31,0
+ 621 023a EC0F      		add r30,r28
+ 622 023c FD1F      		adc r31,r29
+ 623 023e E20F      		add r30,r18
+ 624 0240 F11D      		adc r31,__zero_reg__
+ 625 0242 27FD      		sbrc r18,7
+ 626 0244 FA95      		dec r31
+ 627 0246 2081      		ld r18,Z
+ 628 0248 2C93      		st X,r18
+ 466:ds1820/ds18x20-1.c **** 			if (temp_loc == 0) {
+ 629               		.loc 1 466 0
+ 630 024a 5111      		cpse r21,__zero_reg__
+ 631 024c 00C0      		rjmp .L48
+ 632               	.LVL70:
+ 633               		.loc 1 467 0
+ 634 024e F801      		movw r30,r16
+ 635 0250 E40F      		add r30,r20
+ 636 0252 F11D      		adc r31,__zero_reg__
+ 637 0254 6083      		st Z,r22
+ 638 0256 42E0      		ldi r20,lo8(2)
+ 639 0258 430F      		add r20,r19
+ 640               	.LVL71:
+ 641               	.L48:
+ 642               		.loc 1 467 0 is_stmt 0 discriminator 1
+ 643 025a 342F      		mov r19,r20
+ 644 025c 252F      		mov r18,r21
+ 645               	.LVL72:
+ 646               	.L46:
+ 647 025e 832F      		mov r24,r19
+ 648 0260 90E0      		ldi r25,0
+ 464:ds1820/ds18x20-1.c **** 		while (temp_loc >= 0) {
+ 649               		.loc 1 464 0 is_stmt 1 discriminator 1
+ 650 0262 27FF      		sbrs r18,7
+ 651 0264 00C0      		rjmp .L49
+ 468:ds1820/ds18x20-1.c **** 			}
+ 469:ds1820/ds18x20-1.c **** 		}
+ 470:ds1820/ds18x20-1.c **** 		str[str_loc] = '\0';
+ 652               		.loc 1 470 0
+ 653 0266 F801      		movw r30,r16
+ 654 0268 E80F      		add r30,r24
+ 655 026a F91F      		adc r31,r25
+ 656 026c 1082      		st Z,__zero_reg__
+ 657               	.LVL73:
+ 471:ds1820/ds18x20-1.c **** 
+ 472:ds1820/ds18x20-1.c **** 		ret = DS18X20_OK;
+ 658               		.loc 1 472 0
+ 659 026e 80E0      		ldi r24,0
+ 660 0270 00C0      		rjmp .L41
+ 661               	.LVL74:
+ 662               	.L51:
+ 473:ds1820/ds18x20-1.c **** 	} else {
+ 474:ds1820/ds18x20-1.c **** 		ret = DS18X20_ERROR;
+ 663               		.loc 1 474 0
+ 664 0272 81E0      		ldi r24,lo8(1)
+ 665               	.LVL75:
+ 666               	.L41:
+ 667               	/* epilogue start */
+ 475:ds1820/ds18x20-1.c **** 	}
+ 476:ds1820/ds18x20-1.c **** 
+ 477:ds1820/ds18x20-1.c **** 	return ret;
+ 478:ds1820/ds18x20-1.c **** }
+ 668               		.loc 1 478 0
+ 669 0274 2796      		adiw r28,7
+ 670 0276 0FB6      		in __tmp_reg__,__SREG__
+ 671 0278 F894      		cli
+ 672 027a DEBF      		out __SP_H__,r29
+ 673 027c 0FBE      		out __SREG__,__tmp_reg__
+ 674 027e CDBF      		out __SP_L__,r28
+ 675 0280 DF91      		pop r29
+ 676 0282 CF91      		pop r28
+ 677 0284 1F91      		pop r17
+ 678 0286 0F91      		pop r16
+ 679               	.LVL76:
+ 680 0288 FF90      		pop r15
+ 681 028a EF90      		pop r14
+ 682 028c 0895      		ret
+ 683               		.cfi_endproc
+ 684               	.LFE7:
+ 686               	.global	DS18X20_read_decicelsius
+ 688               	DS18X20_read_decicelsius:
+ 689               	.LFB8:
+ 479:ds1820/ds18x20-1.c **** 
+ 480:ds1820/ds18x20-1.c **** /* reads temperature (scratchpad) of sensor with rom-code id
+ 481:ds1820/ds18x20-1.c ****  output: decicelsius
+ 482:ds1820/ds18x20-1.c ****  returns DS18X20_OK on success */
+ 483:ds1820/ds18x20-1.c **** uint8_t DS18X20_read_decicelsius(uint8_t id[], int16_t *decicelsius) {
+ 690               		.loc 1 483 0
+ 691               		.cfi_startproc
+ 692               	.LVL77:
+ 693 028e DF92      		push r13
+ 694               	.LCFI22:
+ 695               		.cfi_def_cfa_offset 3
+ 696               		.cfi_offset 13, -2
+ 697 0290 EF92      		push r14
+ 698               	.LCFI23:
+ 699               		.cfi_def_cfa_offset 4
+ 700               		.cfi_offset 14, -3
+ 701 0292 FF92      		push r15
+ 702               	.LCFI24:
+ 703               		.cfi_def_cfa_offset 5
+ 704               		.cfi_offset 15, -4
+ 705 0294 0F93      		push r16
+ 706               	.LCFI25:
+ 707               		.cfi_def_cfa_offset 6
+ 708               		.cfi_offset 16, -5
+ 709 0296 1F93      		push r17
+ 710               	.LCFI26:
+ 711               		.cfi_def_cfa_offset 7
+ 712               		.cfi_offset 17, -6
+ 713 0298 CF93      		push r28
+ 714               	.LCFI27:
+ 715               		.cfi_def_cfa_offset 8
+ 716               		.cfi_offset 28, -7
+ 717 029a DF93      		push r29
+ 718               	.LCFI28:
+ 719               		.cfi_def_cfa_offset 9
+ 720               		.cfi_offset 29, -8
+ 721 029c CDB7      		in r28,__SP_L__
+ 722 029e DEB7      		in r29,__SP_H__
+ 723               	.LCFI29:
+ 724               		.cfi_def_cfa_register 28
+ 725 02a0 2997      		sbiw r28,9
+ 726               	.LCFI30:
+ 727               		.cfi_def_cfa_offset 18
+ 728 02a2 0FB6      		in __tmp_reg__,__SREG__
+ 729 02a4 F894      		cli
+ 730 02a6 DEBF      		out __SP_H__,r29
+ 731 02a8 0FBE      		out __SREG__,__tmp_reg__
+ 732 02aa CDBF      		out __SP_L__,r28
+ 733               	/* prologue: function */
+ 734               	/* frame size = 9 */
+ 735               	/* stack size = 16 */
+ 736               	.L__stack_usage = 16
+ 737 02ac 8C01      		movw r16,r24
+ 738 02ae 7B01      		movw r14,r22
+ 484:ds1820/ds18x20-1.c **** 	uint8_t sp[DS18X20_SP_SIZE];
+ 485:ds1820/ds18x20-1.c **** 	uint8_t ret;
+ 486:ds1820/ds18x20-1.c **** 
+ 487:ds1820/ds18x20-1.c **** 	ow_reset();
+ 739               		.loc 1 487 0
+ 740 02b0 00D0      		rcall ow_reset
+ 741               	.LVL78:
+ 488:ds1820/ds18x20-1.c **** 	ret = read_scratchpad(id, sp, DS18X20_SP_SIZE);
+ 742               		.loc 1 488 0
+ 743 02b2 BE01      		movw r22,r28
+ 744 02b4 6F5F      		subi r22,-1
+ 745 02b6 7F4F      		sbci r23,-1
+ 746 02b8 C801      		movw r24,r16
+ 747 02ba 00D0      		rcall read_scratchpad.constprop.0
+ 748               	.LVL79:
+ 749 02bc D82E      		mov r13,r24
+ 750               	.LVL80:
+ 489:ds1820/ds18x20-1.c **** 	if (ret == DS18X20_OK) {
+ 751               		.loc 1 489 0
+ 752 02be 8111      		cpse r24,__zero_reg__
+ 753 02c0 00C0      		rjmp .L55
+ 490:ds1820/ds18x20-1.c **** 		*decicelsius = DS18X20_raw_to_decicelsius(id[0], sp);
+ 754               		.loc 1 490 0
+ 755 02c2 BE01      		movw r22,r28
+ 756 02c4 6F5F      		subi r22,-1
+ 757 02c6 7F4F      		sbci r23,-1
+ 758 02c8 F801      		movw r30,r16
+ 759 02ca 8081      		ld r24,Z
+ 760 02cc 00D0      		rcall DS18X20_raw_to_decicelsius
+ 761               	.LVL81:
+ 762 02ce F701      		movw r30,r14
+ 763 02d0 9183      		std Z+1,r25
+ 764 02d2 8083      		st Z,r24
+ 765               	.L55:
+ 491:ds1820/ds18x20-1.c **** 	}
+ 492:ds1820/ds18x20-1.c **** 	return ret;
+ 493:ds1820/ds18x20-1.c **** }
+ 766               		.loc 1 493 0
+ 767 02d4 8D2D      		mov r24,r13
+ 768               	/* epilogue start */
+ 769 02d6 2996      		adiw r28,9
+ 770 02d8 0FB6      		in __tmp_reg__,__SREG__
+ 771 02da F894      		cli
+ 772 02dc DEBF      		out __SP_H__,r29
+ 773 02de 0FBE      		out __SREG__,__tmp_reg__
+ 774 02e0 CDBF      		out __SP_L__,r28
+ 775 02e2 DF91      		pop r29
+ 776 02e4 CF91      		pop r28
+ 777 02e6 1F91      		pop r17
+ 778 02e8 0F91      		pop r16
+ 779               	.LVL82:
+ 780 02ea FF90      		pop r15
+ 781 02ec EF90      		pop r14
+ 782               	.LVL83:
+ 783 02ee DF90      		pop r13
+ 784               	.LVL84:
+ 785 02f0 0895      		ret
+ 786               		.cfi_endproc
+ 787               	.LFE8:
+ 789               	.global	DS18X20_read_decicelsius_single
+ 791               	DS18X20_read_decicelsius_single:
+ 792               	.LFB9:
+ 494:ds1820/ds18x20-1.c **** 
+ 495:ds1820/ds18x20-1.c **** /* reads temperature (scratchpad) of sensor without id (single sensor)
+ 496:ds1820/ds18x20-1.c ****  output: decicelsius
+ 497:ds1820/ds18x20-1.c ****  returns DS18X20_OK on success */
+ 498:ds1820/ds18x20-1.c **** uint8_t DS18X20_read_decicelsius_single(uint8_t familycode, int16_t *decicelsius) {
+ 793               		.loc 1 498 0
+ 794               		.cfi_startproc
+ 795               	.LVL85:
+ 796 02f2 EF92      		push r14
+ 797               	.LCFI31:
+ 798               		.cfi_def_cfa_offset 3
+ 799               		.cfi_offset 14, -2
+ 800 02f4 FF92      		push r15
+ 801               	.LCFI32:
+ 802               		.cfi_def_cfa_offset 4
+ 803               		.cfi_offset 15, -3
+ 804 02f6 0F93      		push r16
+ 805               	.LCFI33:
+ 806               		.cfi_def_cfa_offset 5
+ 807               		.cfi_offset 16, -4
+ 808 02f8 1F93      		push r17
+ 809               	.LCFI34:
+ 810               		.cfi_def_cfa_offset 6
+ 811               		.cfi_offset 17, -5
+ 812 02fa CF93      		push r28
+ 813               	.LCFI35:
+ 814               		.cfi_def_cfa_offset 7
+ 815               		.cfi_offset 28, -6
+ 816 02fc DF93      		push r29
+ 817               	.LCFI36:
+ 818               		.cfi_def_cfa_offset 8
+ 819               		.cfi_offset 29, -7
+ 820 02fe CDB7      		in r28,__SP_L__
+ 821 0300 DEB7      		in r29,__SP_H__
+ 822               	.LCFI37:
+ 823               		.cfi_def_cfa_register 28
+ 824 0302 2997      		sbiw r28,9
+ 825               	.LCFI38:
+ 826               		.cfi_def_cfa_offset 17
+ 827 0304 0FB6      		in __tmp_reg__,__SREG__
+ 828 0306 F894      		cli
+ 829 0308 DEBF      		out __SP_H__,r29
+ 830 030a 0FBE      		out __SREG__,__tmp_reg__
+ 831 030c CDBF      		out __SP_L__,r28
+ 832               	/* prologue: function */
+ 833               	/* frame size = 9 */
+ 834               	/* stack size = 15 */
+ 835               	.L__stack_usage = 15
+ 836 030e E82E      		mov r14,r24
+ 837 0310 8B01      		movw r16,r22
+ 499:ds1820/ds18x20-1.c **** 	uint8_t sp[DS18X20_SP_SIZE];
+ 500:ds1820/ds18x20-1.c **** 	uint8_t ret;
+ 501:ds1820/ds18x20-1.c **** 
+ 502:ds1820/ds18x20-1.c **** 	ret = read_scratchpad( NULL, sp, DS18X20_SP_SIZE);
+ 838               		.loc 1 502 0
+ 839 0312 BE01      		movw r22,r28
+ 840               	.LVL86:
+ 841 0314 6F5F      		subi r22,-1
+ 842 0316 7F4F      		sbci r23,-1
+ 843 0318 80E0      		ldi r24,0
+ 844 031a 90E0      		ldi r25,0
+ 845               	.LVL87:
+ 846 031c 00D0      		rcall read_scratchpad.constprop.0
+ 847               	.LVL88:
+ 848 031e F82E      		mov r15,r24
+ 849               	.LVL89:
+ 503:ds1820/ds18x20-1.c **** 	if (ret == DS18X20_OK) {
+ 850               		.loc 1 503 0
+ 851 0320 8111      		cpse r24,__zero_reg__
+ 852 0322 00C0      		rjmp .L57
+ 504:ds1820/ds18x20-1.c **** 		*decicelsius = DS18X20_raw_to_decicelsius(familycode, sp);
+ 853               		.loc 1 504 0
+ 854 0324 BE01      		movw r22,r28
+ 855 0326 6F5F      		subi r22,-1
+ 856 0328 7F4F      		sbci r23,-1
+ 857 032a 8E2D      		mov r24,r14
+ 858 032c 00D0      		rcall DS18X20_raw_to_decicelsius
+ 859               	.LVL90:
+ 860 032e F801      		movw r30,r16
+ 861 0330 9183      		std Z+1,r25
+ 862 0332 8083      		st Z,r24
+ 863               	.L57:
+ 505:ds1820/ds18x20-1.c **** 	}
+ 506:ds1820/ds18x20-1.c **** 	return ret;
+ 507:ds1820/ds18x20-1.c **** }
+ 864               		.loc 1 507 0
+ 865 0334 8F2D      		mov r24,r15
+ 866               	/* epilogue start */
+ 867 0336 2996      		adiw r28,9
+ 868 0338 0FB6      		in __tmp_reg__,__SREG__
+ 869 033a F894      		cli
+ 870 033c DEBF      		out __SP_H__,r29
+ 871 033e 0FBE      		out __SREG__,__tmp_reg__
+ 872 0340 CDBF      		out __SP_L__,r28
+ 873 0342 DF91      		pop r29
+ 874 0344 CF91      		pop r28
+ 875 0346 1F91      		pop r17
+ 876 0348 0F91      		pop r16
+ 877               	.LVL91:
+ 878 034a FF90      		pop r15
+ 879               	.LVL92:
+ 880 034c EF90      		pop r14
+ 881               	.LVL93:
+ 882 034e 0895      		ret
+ 883               		.cfi_endproc
+ 884               	.LFE9:
+ 886               	.Letext0:
+ 887               		.file 2 "/usr/lib/avr/include/stdlib.h"
+ 888               		.file 3 "/usr/lib/avr/include/stdint.h"
+ 889               		.file 4 "ds1820/crc8.h"
+ 890               		.file 5 "ds1820/onewire.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 ds18x20-1.c
+     /tmp/ccOQO4gn.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccOQO4gn.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccOQO4gn.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccOQO4gn.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccOQO4gn.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccOQO4gn.s:11     .text:0000000000000000 DS18X20_raw_to_decicelsius
+     /tmp/ccOQO4gn.s:183    .text:00000000000000c2 read_scratchpad.constprop.0
+     /tmp/ccOQO4gn.s:266    .text:0000000000000104 DS18X20_find_sensor
+     /tmp/ccOQO4gn.s:312    .text:0000000000000122 DS18X20_get_power_status
+     /tmp/ccOQO4gn.s:364    .text:0000000000000146 DS18X20_start_meas
+     /tmp/ccOQO4gn.s:441    .text:0000000000000182 DS18X20_conversion_in_progress
+     /tmp/ccOQO4gn.s:465    .text:0000000000000190 DS18X20_format_from_decicelsius
+     /tmp/ccOQO4gn.s:688    .text:000000000000028e DS18X20_read_decicelsius
+     /tmp/ccOQO4gn.s:791    .text:00000000000002f2 DS18X20_read_decicelsius_single
+
+UNDEFINED SYMBOLS
+ow_command
+ow_byte_rd
+crc8
+ow_rom_search
+ow_reset
+ow_bit_io
+ow_input_pin_state
+ow_command_with_parasite_enable
+__divmodhi4
