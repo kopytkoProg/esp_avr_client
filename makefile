@@ -81,7 +81,7 @@ OBJDIR = .
 
 # List C source files here. (C dependencies are automatically generated.)
 #SRC = $(TARGET).c
-SRC = main.c uart/uart.c esp/esp.c ds1820/crc8.c ds1820/ds18x20-1.c ds1820/onewire.c
+SRC = main.c uart/uart.c esp/esp.c ds1820/crc8.c ds1820/ds18x20-1.c ds1820/onewire.c lcd/hd44780.c
 
 
 # List C++ source files here. (C dependencies are automatically generated.)

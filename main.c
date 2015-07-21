@@ -10,6 +10,7 @@
 #include "ds1820/onewire.h"
 #include "ds1820/ds18x20.h"
 #include "main.h"
+#include "lcd/hd44780.h"
 
 static uint8_t sensor_id[NUM_SENSORS][OW_ROMCODE_SIZE];
 static uint8_t nfound = 0;
@@ -44,6 +45,11 @@ static void update_temp(void) {
 		DS18X20_read_decicelsius(&sensor_id[i][0], &temp[i]);
 	}
 
+	lcd_clrscr();
+	lcd_putsf("t1:%d,%d t2:%d,%d", temp[0] / 10, temp[0] % 10, temp[1] / 10, temp[1] % 10);
+	lcd_goto(0x40);
+	lcd_putsf("t3:%d,%d", temp[2] / 10, temp[2] % 10);
+
 	esp_debugf("t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
 
 	DS18X20_start_meas( DS18X20_POWER_EXTERN, NULL);
@@ -69,9 +75,10 @@ int main(void) {
 
 	init_uart();			// init uart
 
-	sei();
-// enable global interrupt
+	lcd_init();
+	lcd_clrscr();
 
+	sei();
 	send("Hello world");
 
 	DDRB |= 1 << 0;
@@ -104,7 +111,8 @@ int main(void) {
 
 					sprintf(b, IDSTR, ID2STR(sensor_id[i]));
 
-					for (j = 0; msg_buffer[j] != ':'; j++);
+					for (j = 0; msg_buffer[j] != ':'; j++)
+						;
 					j += 1;
 
 					for (k = 0; k < IDSTR_LEN && msg_buffer[j + k] == b[k]; k++)
@@ -112,8 +120,8 @@ int main(void) {
 
 				}
 
-				if (k == IDSTR_LEN) esp_sendf("%i", temp[i-1]);
-				else  esp_sendf("Err: id not found");
+				if (k == IDSTR_LEN) esp_sendf("%i", temp[i - 1]);
+				else esp_sendf("Err: id not found");
 
 			} else {
 

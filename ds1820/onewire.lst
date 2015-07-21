@@ -76,10 +76,10 @@
   20               	.L__stack_usage = 0
   58:ds1820/onewire.c **** 	return OW_GET_IN();
   21               		.loc 1 58 0
-  22 0000 86B1      		in r24,0x6
+  22 0000 83B1      		in r24,0x3
   59:ds1820/onewire.c **** }
   23               		.loc 1 59 0
-  24 0002 8170      		andi r24,lo8(1)
+  24 0002 8074      		andi r24,lo8(64)
   25 0004 0895      		ret
   26               		.cfi_endproc
   27               	.LFE11:
@@ -97,10 +97,10 @@
   38               	.L__stack_usage = 0
   63:ds1820/onewire.c **** 	OW_OUT_HIGH();
   39               		.loc 1 63 0
-  40 0006 409A      		sbi 0x8,0
+  40 0006 2E9A      		sbi 0x5,6
   64:ds1820/onewire.c **** 	OW_DIR_OUT();
   41               		.loc 1 64 0
-  42 0008 389A      		sbi 0x7,0
+  42 0008 269A      		sbi 0x4,6
   43 000a 0895      		ret
   44               		.cfi_endproc
   45               	.LFE12:
@@ -187,7 +187,7 @@
  121:ds1820/onewire.c **** #endif
  122:ds1820/onewire.c **** 		OW_DIR_OUT();    // drive bus low
   72               		.loc 1 122 0
-  73 0016 389A      		sbi 0x7,0
+  73 0016 269A      		sbi 0x4,6
   74               	.LVL1:
   75               	.LBB16:
   76               	.LBB17:
@@ -451,7 +451,7 @@
   86 0020 8111      		cpse r24,__zero_reg__
  125:ds1820/onewire.c **** 			OW_DIR_IN(); // to write "1" release bus, resistor pulls high
   87               		.loc 1 125 0
-  88 0022 3898      		cbi 0x7,0
+  88 0022 2698      		cbi 0x4,6
   89               	.L4:
   90               	.LVL2:
   91               	.LBB18:
@@ -476,7 +476,7 @@
  136:ds1820/onewire.c **** 		
  137:ds1820/onewire.c **** 		if( OW_GET_IN() == 0 ) {
  100               		.loc 1 137 0
- 101 002c 309B      		sbis 0x6,0
+ 101 002c 1E9B      		sbis 0x3,6
  138:ds1820/onewire.c **** 			b = 0;  // sample at end of read-timeslot
  102               		.loc 1 138 0
  103 002e 80E0      		ldi r24,0
@@ -499,7 +499,7 @@
  144:ds1820/onewire.c **** #endif
  145:ds1820/onewire.c **** 		OW_DIR_IN();
  115               		.loc 1 145 0
- 116 0038 3898      		cbi 0x7,0
+ 116 0038 2698      		cbi 0x4,6
  146:ds1820/onewire.c **** 	
  147:ds1820/onewire.c **** 		if ( with_parasite_enable ) {
  117               		.loc 1 147 0
@@ -552,10 +552,10 @@
  156               	.L__stack_usage = 0
   69:ds1820/onewire.c **** 	OW_DIR_IN();
  157               		.loc 1 69 0
- 158 0058 3898      		cbi 0x7,0
+ 158 0058 2698      		cbi 0x4,6
   71:ds1820/onewire.c **** 	OW_OUT_LOW();
  159               		.loc 1 71 0
- 160 005a 4098      		cbi 0x8,0
+ 160 005a 2E98      		cbi 0x5,6
  161 005c 0895      		ret
  162               		.cfi_endproc
  163               	.LFE13:
@@ -571,10 +571,10 @@
  174               	.L__stack_usage = 0
   80:ds1820/onewire.c **** 	OW_OUT_LOW();
  175               		.loc 1 80 0
- 176 005e 4098      		cbi 0x8,0
+ 176 005e 2E98      		cbi 0x5,6
   81:ds1820/onewire.c **** 	OW_DIR_OUT();            // pull OW-Pin low for 480us
  177               		.loc 1 81 0
- 178 0060 389A      		sbi 0x7,0
+ 178 0060 269A      		sbi 0x4,6
  179               	.LVL6:
  180               	.LBB24:
  181               	.LBB25:
@@ -589,7 +589,7 @@
  190               	.LBE24:
   87:ds1820/onewire.c **** 		OW_DIR_IN(); // input
  191               		.loc 1 87 0
- 192 006e 3898      		cbi 0x7,0
+ 192 006e 2698      		cbi 0x4,6
  193               	.LVL7:
  194               	.LBB26:
  195               	.LBB27:
@@ -602,7 +602,7 @@
  202               	.LBE26:
   93:ds1820/onewire.c **** 		err = OW_GET_IN();   // no presence detect
  203               		.loc 1 93 0
- 204 0078 86B1      		in r24,0x6
+ 204 0078 83B1      		in r24,0x3
  205               	.LVL8:
  206               	.LBB28:
  207               	.LBB29:
@@ -617,11 +617,11 @@
  216               	.LBE28:
  100:ds1820/onewire.c **** 	if( OW_GET_IN() == 0 ) {
  217               		.loc 1 100 0
- 218 0086 309B      		sbis 0x6,0
+ 218 0086 1E9B      		sbis 0x3,6
  219 0088 00C0      		rjmp .L18
   93:ds1820/onewire.c **** 		err = OW_GET_IN();   // no presence detect
  220               		.loc 1 93 0
- 221 008a 8170      		andi r24,lo8(1)
+ 221 008a 8074      		andi r24,lo8(64)
  222               	.LVL9:
  223 008c 0895      		ret
  224               	.LVL10:
@@ -1229,23 +1229,23 @@
  681               		.file 3 "/usr/lib/avr/include/stdint.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 onewire.c
-     /tmp/ccUXcBMs.s:2      *ABS*:000000000000003e __SP_H__
-     /tmp/ccUXcBMs.s:3      *ABS*:000000000000003d __SP_L__
-     /tmp/ccUXcBMs.s:4      *ABS*:000000000000003f __SREG__
-     /tmp/ccUXcBMs.s:5      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/ccUXcBMs.s:6      *ABS*:0000000000000001 __zero_reg__
-     /tmp/ccUXcBMs.s:12     .text:0000000000000000 ow_input_pin_state
-     /tmp/ccUXcBMs.s:31     .text:0000000000000006 ow_parasite_enable
-     /tmp/ccUXcBMs.s:48     .text:000000000000000c ow_bit_io_intern
-     /tmp/ccUXcBMs.s:149    .text:0000000000000058 ow_parasite_disable
-     /tmp/ccUXcBMs.s:167    .text:000000000000005e ow_reset
-     /tmp/ccUXcBMs.s:236    .text:0000000000000092 ow_bit_io
-     /tmp/ccUXcBMs.s:256    .text:0000000000000098 ow_byte_wr
-     /tmp/ccUXcBMs.s:311    .text:00000000000000b8 ow_byte_wr_with_parasite_enable
-     /tmp/ccUXcBMs.s:374    .text:00000000000000e2 ow_command_intern
-     /tmp/ccUXcBMs.s:480    .text:0000000000000136 ow_byte_rd
-     /tmp/ccUXcBMs.s:497    .text:000000000000013a ow_rom_search
-     /tmp/ccUXcBMs.s:646    .text:00000000000001be ow_command
-     /tmp/ccUXcBMs.s:664    .text:00000000000001c2 ow_command_with_parasite_enable
+     /tmp/ccK2lbX9.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccK2lbX9.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccK2lbX9.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccK2lbX9.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccK2lbX9.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccK2lbX9.s:12     .text:0000000000000000 ow_input_pin_state
+     /tmp/ccK2lbX9.s:31     .text:0000000000000006 ow_parasite_enable
+     /tmp/ccK2lbX9.s:48     .text:000000000000000c ow_bit_io_intern
+     /tmp/ccK2lbX9.s:149    .text:0000000000000058 ow_parasite_disable
+     /tmp/ccK2lbX9.s:167    .text:000000000000005e ow_reset
+     /tmp/ccK2lbX9.s:236    .text:0000000000000092 ow_bit_io
+     /tmp/ccK2lbX9.s:256    .text:0000000000000098 ow_byte_wr
+     /tmp/ccK2lbX9.s:311    .text:00000000000000b8 ow_byte_wr_with_parasite_enable
+     /tmp/ccK2lbX9.s:374    .text:00000000000000e2 ow_command_intern
+     /tmp/ccK2lbX9.s:480    .text:0000000000000136 ow_byte_rd
+     /tmp/ccK2lbX9.s:497    .text:000000000000013a ow_rom_search
+     /tmp/ccK2lbX9.s:646    .text:00000000000001be ow_command
+     /tmp/ccK2lbX9.s:664    .text:00000000000001c2 ow_command_with_parasite_enable
 
 NO UNDEFINED SYMBOLS

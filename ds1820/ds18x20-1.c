@@ -425,57 +425,57 @@ static int16_t DS18X20_raw_to_decicelsius(uint8_t familycode, uint8_t sp[]) {
 		return decicelsius;
 	}
 }
-
-/* format decicelsius-value into string, itoa method inspired 
- by code from Chris Takahashi for the MSP430 libc, BSD-license
- modifications mthomas: variable-types, fixed radix 10, use div(),
- insert decimal-point */
-uint8_t DS18X20_format_from_decicelsius(int16_t decicelsius, char str[], uint8_t n) {
-	uint8_t sign = 0;
-	char temp[7];
-	int8_t temp_loc = 0;
-	uint8_t str_loc = 0;
-	div_t dt;
-	uint8_t ret;
-
-	// range from -550:-55.0�C to 1250:+125.0�C -> min. 6+1 chars
-	if (n >= (6 + 1) && decicelsius > -1000 && decicelsius < 10000) {
-
-		if (decicelsius < 0) {
-			sign = 1;
-			decicelsius = -decicelsius;
-		}
-
-		// construct a backward string of the number.
-		do {
-			dt = div(decicelsius, 10);
-			temp[temp_loc++] = dt.rem + '0';
-			decicelsius = dt.quot;
-		} while (decicelsius > 0);
-
-		if (sign) {
-			temp[temp_loc] = '-';
-		} else {
-			///temp_loc--;
-			temp[temp_loc] = '+';
-		}
-
-		// reverse the string.into the output
-		while (temp_loc >= 0) {
-			str[str_loc++] = temp[(uint8_t) temp_loc--];
-			if (temp_loc == 0) {
-				str[str_loc++] = DS18X20_DECIMAL_CHAR;
-			}
-		}
-		str[str_loc] = '\0';
-
-		ret = DS18X20_OK;
-	} else {
-		ret = DS18X20_ERROR;
-	}
-
-	return ret;
-}
+//
+///* format decicelsius-value into string, itoa method inspired
+// by code from Chris Takahashi for the MSP430 libc, BSD-license
+// modifications mthomas: variable-types, fixed radix 10, use div(),
+// insert decimal-point */
+//uint8_t DS18X20_format_from_decicelsius(int16_t decicelsius, char str[], uint8_t n) {
+//	uint8_t sign = 0;
+//	char temp[7];
+//	int8_t temp_loc = 0;
+//	uint8_t str_loc = 0;
+//	div_t dt;
+//	uint8_t ret;
+//
+//	// range from -550:-55.0�C to 1250:+125.0�C -> min. 6+1 chars
+//	if (n >= (6 + 1) && decicelsius > -1000 && decicelsius < 10000) {
+//
+//		if (decicelsius < 0) {
+//			sign = 1;
+//			decicelsius = -decicelsius;
+//		}
+//
+//		// construct a backward string of the number.
+//		do {
+//			dt = div(decicelsius, 10);
+//			temp[temp_loc++] = dt.rem + '0';
+//			decicelsius = dt.quot;
+//		} while (decicelsius > 0);
+//
+//		if (sign) {
+//			temp[temp_loc] = '-';
+//		} else {
+//			///temp_loc--;
+//			temp[temp_loc] = '+';
+//		}
+//
+//		// reverse the string.into the output
+//		while (temp_loc >= 0) {
+//			str[str_loc++] = temp[(uint8_t) temp_loc--];
+//			if (temp_loc == 0) {
+//				str[str_loc++] = DS18X20_DECIMAL_CHAR;
+//			}
+//		}
+//		str[str_loc] = '\0';
+//
+//		ret = DS18X20_OK;
+//	} else {
+//		ret = DS18X20_ERROR;
+//	}
+//
+//	return ret;
+//}
 
 /* reads temperature (scratchpad) of sensor with rom-code id
  output: decicelsius
