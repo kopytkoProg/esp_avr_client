@@ -33,6 +33,8 @@ static void update_temp(void) {
 
 		if (!nfound) {
 			esp_debug("Error: No sensor founds!");
+			lcd_clrscr();
+			lcd_putsf("No sensor found");
 			return;
 		}
 
@@ -46,12 +48,19 @@ static void update_temp(void) {
 	}
 
 	lcd_clrscr();
-	lcd_putsf("t1:%d,%d t2:%d,%d", temp[0] / 10, temp[0] % 10, temp[1] / 10, temp[1] % 10);
-	lcd_goto(0x40);
-	lcd_putsf("t3:%d,%d", temp[2] / 10, temp[2] % 10);
 
+	if (nfound == 1) {
+		lcd_putsf("t1:%d,%d", temp[0] / 10, temp[0] % 10);
+	} else if (nfound == 2) {
+		lcd_putsf("t1:%d,%d", temp[0] / 10, temp[0] % 10);
+		lcd_goto(0x40);
+		lcd_putsf("t2:%d,%d", temp[1] / 10, temp[1] % 10);
+	} else if (nfound == 3) {
+		lcd_putsf("t1:%d,%d t2:%d,%d", temp[0] / 10, temp[0] % 10, temp[1] / 10, temp[1] % 10);
+		lcd_goto(0x40);
+		lcd_putsf("t3:%d,%d", temp[2] / 10, temp[2] % 10);
+	}
 	esp_debugf("t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
-
 	DS18X20_start_meas( DS18X20_POWER_EXTERN, NULL);
 
 }
@@ -72,6 +81,8 @@ uint8_t cmp_cmd_of_msg(char *msg1, char *msg2) {
 }
 
 int main(void) {
+
+	_delay_ms(1000);
 
 	init_uart();			// init uart
 
@@ -96,8 +107,15 @@ int main(void) {
 				send(RESPONSE_HELLO_AVR);
 
 			} else if (strcmp(msg_buffer, CMD_GET_SENSORS_ID) == 0) {
-
-				esp_sendf(IDSTR", "IDSTR", "IDSTR, ID2STR(sensor_id[0]), ID2STR(sensor_id[1]), ID2STR(sensor_id[2]));
+				if (nfound == 0) {
+					esp_sendf("");
+				} else if (nfound == 1) {
+					esp_sendf(IDSTR, ID2STR(sensor_id[0]));
+				} else if (nfound == 2) {
+					esp_sendf(IDSTR", "IDSTR, ID2STR(sensor_id[0]), ID2STR(sensor_id[1]));
+				} else if (nfound == 3) {
+					esp_sendf(IDSTR", "IDSTR", "IDSTR, ID2STR(sensor_id[0]), ID2STR(sensor_id[1]), ID2STR(sensor_id[2]));
+				}
 
 			} else if (cmp_cmd_of_msg(msg_buffer, CMD_GET_TEMP) == 0) {
 				/* 23 = strlen(28:ff:da:60:62:14:03:e4) */
