@@ -73,7 +73,7 @@
   60:main.c        **** 		lcd_goto(0x40);
   61:main.c        **** 		lcd_putsf("t3:%d,%d", temp[2] / 10, temp[2] % 10);
   62:main.c        **** 	}
-  63:main.c        **** 	esp_debugf("t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
+  63:main.c        **** 	// esp_debugf("t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
   64:main.c        **** 	DS18X20_start_meas( DS18X20_POWER_EXTERN, NULL);
   65:main.c        **** 
   66:main.c        **** }
@@ -150,86 +150,80 @@
   47      642C 2564 
   47      00
   48               	.LC9:
-  49 00a5 7431 3A20 		.string	"t1: %d, t2: %d, t3: %d"
-  49      2564 2C20 
-  49      7432 3A20 
-  49      2564 2C20 
-  49      7433 3A20 
+  49 00a5 7B68 656C 		.string	"{hello-avr}"
+  49      6C6F 2D61 
+  49      7672 7D00 
   50               	.LC10:
-  51 00bc 7B68 656C 		.string	"{hello-avr}"
-  51      6C6F 2D61 
+  51 00b1 7B67 6574 		.string	"{get-sensor-id-avr}"
+  51      2D73 656E 
+  51      736F 722D 
+  51      6964 2D61 
   51      7672 7D00 
   52               	.LC11:
-  53 00c8 7B67 6574 		.string	"{get-sensor-id-avr}"
-  53      2D73 656E 
-  53      736F 722D 
-  53      6964 2D61 
-  53      7672 7D00 
+  53 00c5 00        		.string	""
   54               	.LC12:
-  55 00dc 00        		.string	""
+  55 00c6 2530 3278 		.string	"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x"
+  55      3A25 3032 
+  55      783A 2530 
+  55      3278 3A25 
+  55      3032 783A 
   56               	.LC13:
-  57 00dd 2530 3278 		.string	"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x"
+  57 00ee 2530 3278 		.string	"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x"
   57      3A25 3032 
   57      783A 2530 
   57      3278 3A25 
   57      3032 783A 
   58               	.LC14:
-  59 0105 2530 3278 		.string	"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x"
+  59 013f 2530 3278 		.string	"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, %02x:%0
   59      3A25 3032 
   59      783A 2530 
   59      3278 3A25 
   59      3032 783A 
   60               	.LC15:
-  61 0156 2530 3278 		.string	"%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x, %02x:%0
-  61      3A25 3032 
-  61      783A 2530 
-  61      3278 3A25 
-  61      3032 783A 
+  61 01b9 2569 00   		.string	"%i"
   62               	.LC16:
-  63 01d0 2569 00   		.string	"%i"
-  64               	.LC17:
-  65 01d3 4572 723A 		.string	"Err: id not found"
-  65      2069 6420 
-  65      6E6F 7420 
-  65      666F 756E 
-  65      6400 
-  66               		.section	.text.startup,"ax",@progbits
-  67               	.global	main
-  69               	main:
-  70               	.LFB9:
+  63 01bc 4572 723A 		.string	"Err: id not found"
+  63      2069 6420 
+  63      6E6F 7420 
+  63      666F 756E 
+  63      6400 
+  64               		.section	.text.startup,"ax",@progbits
+  65               	.global	main
+  67               	main:
+  68               	.LFB9:
   82:main.c        **** 
   83:main.c        **** int main(void) {
-  71               		.loc 1 83 0
-  72               		.cfi_startproc
-  73 0000 CF93      		push r28
-  74               	.LCFI0:
-  75               		.cfi_def_cfa_offset 3
-  76               		.cfi_offset 28, -2
-  77 0002 DF93      		push r29
-  78               	.LCFI1:
-  79               		.cfi_def_cfa_offset 4
-  80               		.cfi_offset 29, -3
-  81 0004 CDB7      		in r28,__SP_L__
-  82 0006 DEB7      		in r29,__SP_H__
-  83               	.LCFI2:
-  84               		.cfi_def_cfa_register 28
-  85 0008 CE57      		subi r28,126
-  86 000a D109      		sbc r29,__zero_reg__
-  87               	.LCFI3:
-  88               		.cfi_def_cfa_offset 130
-  89 000c 0FB6      		in __tmp_reg__,__SREG__
-  90 000e F894      		cli
-  91 0010 DEBF      		out __SP_H__,r29
-  92 0012 0FBE      		out __SREG__,__tmp_reg__
-  93 0014 CDBF      		out __SP_L__,r28
-  94               	/* prologue: function */
-  95               	/* frame size = 126 */
-  96               	/* stack size = 128 */
-  97               	.L__stack_usage = 128
-  98               	.LVL2:
-  99               	.LBB15:
- 100               	.LBB16:
- 101               		.file 2 "/usr/lib/avr/include/util/delay.h"
+  69               		.loc 1 83 0
+  70               		.cfi_startproc
+  71 0000 CF93      		push r28
+  72               	.LCFI0:
+  73               		.cfi_def_cfa_offset 3
+  74               		.cfi_offset 28, -2
+  75 0002 DF93      		push r29
+  76               	.LCFI1:
+  77               		.cfi_def_cfa_offset 4
+  78               		.cfi_offset 29, -3
+  79 0004 CDB7      		in r28,__SP_L__
+  80 0006 DEB7      		in r29,__SP_H__
+  81               	.LCFI2:
+  82               		.cfi_def_cfa_register 28
+  83 0008 CE57      		subi r28,126
+  84 000a D109      		sbc r29,__zero_reg__
+  85               	.LCFI3:
+  86               		.cfi_def_cfa_offset 130
+  87 000c 0FB6      		in __tmp_reg__,__SREG__
+  88 000e F894      		cli
+  89 0010 DEBF      		out __SP_H__,r29
+  90 0012 0FBE      		out __SREG__,__tmp_reg__
+  91 0014 CDBF      		out __SP_L__,r28
+  92               	/* prologue: function */
+  93               	/* frame size = 126 */
+  94               	/* stack size = 128 */
+  95               	.L__stack_usage = 128
+  96               	.LVL2:
+  97               	.LBB15:
+  98               	.LBB16:
+  99               		.file 2 "/usr/lib/avr/include/util/delay.h"
    1:/usr/lib/avr/include/util/delay.h **** /* Copyright (c) 2002, Marek Michalkiewicz
    2:/usr/lib/avr/include/util/delay.h ****    Copyright (c) 2004,2005,2007 Joerg Wunsch
    3:/usr/lib/avr/include/util/delay.h ****    Copyright (c) 2007  Florin-Viorel Petrov
@@ -394,68 +388,76 @@
  162:/usr/lib/avr/include/util/delay.h **** 	#endif
  163:/usr/lib/avr/include/util/delay.h **** 
  164:/usr/lib/avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
- 102               		.loc 2 164 0
- 103 0016 2FEF      		ldi r18,lo8(1599999)
- 104 0018 39E6      		ldi r19,hi8(1599999)
- 105 001a 48E1      		ldi r20,hlo8(1599999)
- 106 001c 2150      		1: subi r18,1
- 107 001e 3040      		sbci r19,0
- 108 0020 4040      		sbci r20,0
- 109 0022 01F4      		brne 1b
- 110 0024 00C0      		rjmp .
- 111 0026 0000      		nop
- 112               	.LBE16:
- 113               	.LBE15:
+ 100               		.loc 2 164 0
+ 101 0016 2FEF      		ldi r18,lo8(1599999)
+ 102 0018 39E6      		ldi r19,hi8(1599999)
+ 103 001a 48E1      		ldi r20,hlo8(1599999)
+ 104 001c 2150      		1: subi r18,1
+ 105 001e 3040      		sbci r19,0
+ 106 0020 4040      		sbci r20,0
+ 107 0022 01F4      		brne 1b
+ 108 0024 00C0      		rjmp .
+ 109 0026 0000      		nop
+ 110               	.LBE16:
+ 111               	.LBE15:
   84:main.c        **** 
   85:main.c        **** 	_delay_ms(1000);
   86:main.c        **** 
   87:main.c        **** 	init_uart();			// init uart
- 114               		.loc 1 87 0
- 115 0028 00D0      		rcall init_uart
- 116               	.LVL3:
+ 112               		.loc 1 87 0
+ 113 0028 00D0      		rcall init_uart
+ 114               	.LVL3:
   88:main.c        **** 
   89:main.c        **** 	lcd_init();
- 117               		.loc 1 89 0
- 118 002a 00D0      		rcall lcd_init
- 119               	.LVL4:
+ 115               		.loc 1 89 0
+ 116 002a 00D0      		rcall lcd_init
+ 117               	.LVL4:
   90:main.c        **** 	lcd_clrscr();
- 120               		.loc 1 90 0
- 121 002c 00D0      		rcall lcd_clrscr
- 122               	.LVL5:
+ 118               		.loc 1 90 0
+ 119 002c 00D0      		rcall lcd_clrscr
+ 120               	.LVL5:
   91:main.c        **** 
   92:main.c        **** 	sei();
- 123               		.loc 1 92 0
- 124               	/* #APP */
- 125               	 ;  92 "main.c" 1
- 126 002e 7894      		sei
- 127               	 ;  0 "" 2
+ 121               		.loc 1 92 0
+ 122               	/* #APP */
+ 123               	 ;  92 "main.c" 1
+ 124 002e 7894      		sei
+ 125               	 ;  0 "" 2
   93:main.c        **** 	send("Hello world");
- 128               		.loc 1 93 0
- 129               	/* #NOAPP */
- 130 0030 80E0      		ldi r24,lo8(.LC0)
- 131 0032 90E0      		ldi r25,hi8(.LC0)
- 132 0034 00D0      		rcall send
- 133               	.LVL6:
+ 126               		.loc 1 93 0
+ 127               	/* #NOAPP */
+ 128 0030 80E0      		ldi r24,lo8(.LC0)
+ 129 0032 90E0      		ldi r25,hi8(.LC0)
+ 130 0034 00D0      		rcall send
+ 131               	.LVL6:
   94:main.c        **** 
   95:main.c        **** 	DDRB |= 1 << 0;
- 134               		.loc 1 95 0
- 135 0036 209A      		sbi 0x4,0
- 136               	.LBB17:
- 137               	.LBB18:
-  63:main.c        **** 	esp_debugf("t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
- 138               		.loc 1 63 0
- 139 0038 60E0      		ldi r22,lo8(.LC9)
- 140 003a 462E      		mov r4,r22
- 141 003c 60E0      		ldi r22,hi8(.LC9)
- 142 003e 562E      		mov r5,r22
+ 132               		.loc 1 95 0
+ 133 0036 209A      		sbi 0x4,0
+ 134               	.LBB17:
+ 135               	.LBB18:
   59:main.c        **** 		lcd_putsf("t1:%d,%d t2:%d,%d", temp[0] / 10, temp[0] % 10, temp[1] / 10, temp[1] % 10);
- 143               		.loc 1 59 0
- 144 0040 0AE0      		ldi r16,lo8(10)
- 145 0042 10E0      		ldi r17,0
- 146               	.LBE18:
- 147               	.LBE17:
- 148               	.LBB23:
- 149               	.LBB24:
+ 136               		.loc 1 59 0
+ 137 0038 0AE0      		ldi r16,lo8(10)
+ 138 003a 10E0      		ldi r17,0
+  61:main.c        **** 		lcd_putsf("t3:%d,%d", temp[2] / 10, temp[2] % 10);
+ 139               		.loc 1 61 0
+ 140 003c 50E0      		ldi r21,lo8(.LC8)
+ 141 003e 252E      		mov r2,r21
+ 142 0040 50E0      		ldi r21,hi8(.LC8)
+ 143 0042 352E      		mov r3,r21
+ 144               	.LBB19:
+  30:main.c        **** 			esp_debugf("Found: "IDSTR", dnum: %u", ID2STR(sensor_id[nfound]), dnum);
+ 145               		.loc 1 30 0
+ 146 0044 60E0      		ldi r22,lo8(.LC1)
+ 147 0046 462E      		mov r4,r22
+ 148 0048 60E0      		ldi r22,hi8(.LC1)
+ 149 004a 562E      		mov r5,r22
+ 150               	.LBE19:
+ 151               	.LBE18:
+ 152               	.LBE17:
+ 153               	.LBB24:
+ 154               	.LBB25:
   96:main.c        **** 	while (1) {
   97:main.c        **** 		PORTB ^= 1 << 0;
   98:main.c        **** 
@@ -491,879 +493,844 @@
  128:main.c        **** 				for (i = 0; i < nfound && k != IDSTR_LEN; i++) {
  129:main.c        **** 
  130:main.c        **** 					sprintf(b, IDSTR, ID2STR(sensor_id[i]));
- 150               		.loc 1 130 0
- 151 0044 6E01      		movw r12,r28
- 152 0046 56E6      		ldi r21,102
- 153 0048 C50E      		add r12,r21
- 154 004a D11C      		adc r13,__zero_reg__
- 155               	.L32:
- 156               	.LBE24:
- 157               	.LBE23:
-  97:main.c        **** 		PORTB ^= 1 << 0;
- 158               		.loc 1 97 0
- 159 004c AA24      		clr r10
- 160 004e A394      		inc r10
- 161               	.LBB27:
- 162               	.LBB21:
-  61:main.c        **** 		lcd_putsf("t3:%d,%d", temp[2] / 10, temp[2] % 10);
- 163               		.loc 1 61 0
- 164 0050 20E0      		ldi r18,lo8(.LC8)
- 165 0052 222E      		mov r2,r18
- 166 0054 20E0      		ldi r18,hi8(.LC8)
- 167 0056 322E      		mov r3,r18
+ 155               		.loc 1 130 0
+ 156 004c 6E01      		movw r12,r28
+ 157 004e 56E6      		ldi r21,102
+ 158 0050 C50E      		add r12,r21
+ 159 0052 D11C      		adc r13,__zero_reg__
+ 160               	.L32:
+ 161               	.LBE25:
+ 162               	.LBE24:
+ 163               	.LBB28:
+ 164               	.LBB22:
   55:main.c        **** 		lcd_putsf("t1:%d,%d", temp[0] / 10, temp[0] % 10);
- 168               		.loc 1 55 0
- 169 0058 30E0      		ldi r19,lo8(.LC5)
- 170 005a E32E      		mov r14,r19
- 171 005c 30E0      		ldi r19,hi8(.LC5)
- 172 005e F32E      		mov r15,r19
+ 165               		.loc 1 55 0
+ 166 0054 20E0      		ldi r18,lo8(.LC5)
+ 167 0056 E22E      		mov r14,r18
+ 168 0058 20E0      		ldi r18,hi8(.LC5)
+ 169 005a F22E      		mov r15,r18
   57:main.c        **** 		lcd_putsf("t2:%d,%d", temp[1] / 10, temp[1] % 10);
- 173               		.loc 1 57 0
- 174 0060 40E0      		ldi r20,lo8(.LC6)
- 175 0062 642E      		mov r6,r20
- 176 0064 40E0      		ldi r20,hi8(.LC6)
- 177 0066 742E      		mov r7,r20
- 178               	.LBB19:
+ 170               		.loc 1 57 0
+ 171 005c 30E0      		ldi r19,lo8(.LC6)
+ 172 005e 632E      		mov r6,r19
+ 173 0060 30E0      		ldi r19,hi8(.LC6)
+ 174 0062 732E      		mov r7,r19
+ 175               	.LBB20:
   37:main.c        **** 			lcd_putsf("No sensor found");
- 179               		.loc 1 37 0
- 180 0068 50E0      		ldi r21,lo8(.LC3)
- 181 006a 852E      		mov r8,r21
- 182 006c 50E0      		ldi r21,hi8(.LC3)
- 183 006e 952E      		mov r9,r21
- 184               	.L15:
- 185               	.LBE19:
- 186               	.LBE21:
- 187               	.LBE27:
+ 176               		.loc 1 37 0
+ 177 0064 40E0      		ldi r20,lo8(.LC3)
+ 178 0066 842E      		mov r8,r20
+ 179 0068 40E0      		ldi r20,hi8(.LC3)
+ 180 006a 942E      		mov r9,r20
+ 181               	.L15:
+ 182               	.LBE20:
+ 183               	.LBE22:
+ 184               	.LBE28:
   97:main.c        **** 		PORTB ^= 1 << 0;
- 188               		.loc 1 97 0
- 189 0070 85B1      		in r24,0x5
- 190 0072 8A25      		eor r24,r10
- 191 0074 85B9      		out 0x5,r24
- 192               	.LBB28:
- 193               	.LBB22:
+ 185               		.loc 1 97 0
+ 186 006c 85B1      		in r24,0x5
+ 187 006e 91E0      		ldi r25,lo8(1)
+ 188 0070 8927      		eor r24,r25
+ 189 0072 85B9      		out 0x5,r24
+ 190               	.LBB29:
+ 191               	.LBB23:
   22:main.c        **** 	if (!nfound) {
- 194               		.loc 1 22 0
- 195 0076 8091 0000 		lds r24,nfound
- 196 007a 8111      		cpse r24,__zero_reg__
- 197 007c 00C0      		rjmp .L3
- 198               	.LVL7:
- 199               	.LBB20:
+ 192               		.loc 1 22 0
+ 193 0074 8091 0000 		lds r24,nfound
+ 194 0078 8111      		cpse r24,__zero_reg__
+ 195 007a 00C0      		rjmp .L3
+ 196               	.LVL7:
+ 197               	.LBB21:
   25:main.c        **** 		ow_reset();
- 200               		.loc 1 25 0
- 201 007e 00D0      		rcall ow_reset
- 202               	.LVL8:
+ 198               		.loc 1 25 0
+ 199 007c 00D0      		rcall ow_reset
+ 200               	.LVL8:
   23:main.c        **** 		uint8_t dnum = OW_SEARCH_FIRST;
- 203               		.loc 1 23 0
- 204 0080 8FEF      		ldi r24,lo8(-1)
- 205               	.LVL9:
- 206               	.L6:
+ 201               		.loc 1 23 0
+ 202 007e 8FEF      		ldi r24,lo8(-1)
+ 203               	.LVL9:
+ 204               	.L6:
   28:main.c        **** 			if (nfound) memcpy(sensor_id[nfound], sensor_id[nfound - 1], OW_ROMCODE_SIZE);
- 207               		.loc 1 28 0
- 208 0082 9091 0000 		lds r25,nfound
- 209 0086 692F      		mov r22,r25
- 210 0088 70E0      		ldi r23,0
- 211 008a 9923      		tst r25
- 212 008c 01F0      		breq .L4
- 213 008e DB01      		movw r26,r22
- 214 0090 53E0      		ldi r21,3
- 215               		1:
- 216 0092 AA0F      		lsl r26
- 217 0094 BB1F      		rol r27
- 218 0096 5A95      		dec r21
- 219 0098 01F4      		brne 1b
- 220 009a A050      		subi r26,lo8(-(sensor_id))
- 221 009c B040      		sbci r27,hi8(-(sensor_id))
- 222 009e FB01      		movw r30,r22
- 223 00a0 93E0      		ldi r25,3
- 224               		1:
- 225 00a2 EE0F      		lsl r30
- 226 00a4 FF1F      		rol r31
- 227 00a6 9A95      		dec r25
- 228 00a8 01F4      		brne 1b
- 229 00aa E050      		subi r30,lo8(-(sensor_id-8))
- 230 00ac F040      		sbci r31,hi8(-(sensor_id-8))
- 231 00ae 98E0      		ldi r25,lo8(8)
- 232               		0:
- 233 00b0 0190      		ld r0,Z+
- 234 00b2 0D92      		st X+,r0
- 235 00b4 9A95      		dec r25
- 236 00b6 01F4      		brne 0b
- 237               	.L4:
+ 205               		.loc 1 28 0
+ 206 0080 9091 0000 		lds r25,nfound
+ 207 0084 692F      		mov r22,r25
+ 208 0086 70E0      		ldi r23,0
+ 209 0088 9923      		tst r25
+ 210 008a 01F0      		breq .L4
+ 211 008c DB01      		movw r26,r22
+ 212 008e 53E0      		ldi r21,3
+ 213               		1:
+ 214 0090 AA0F      		lsl r26
+ 215 0092 BB1F      		rol r27
+ 216 0094 5A95      		dec r21
+ 217 0096 01F4      		brne 1b
+ 218 0098 A050      		subi r26,lo8(-(sensor_id))
+ 219 009a B040      		sbci r27,hi8(-(sensor_id))
+ 220 009c FB01      		movw r30,r22
+ 221 009e 93E0      		ldi r25,3
+ 222               		1:
+ 223 00a0 EE0F      		lsl r30
+ 224 00a2 FF1F      		rol r31
+ 225 00a4 9A95      		dec r25
+ 226 00a6 01F4      		brne 1b
+ 227 00a8 E050      		subi r30,lo8(-(sensor_id-8))
+ 228 00aa F040      		sbci r31,hi8(-(sensor_id-8))
+ 229 00ac 98E0      		ldi r25,lo8(8)
+ 230               		0:
+ 231 00ae 0190      		ld r0,Z+
+ 232 00b0 0D92      		st X+,r0
+ 233 00b2 9A95      		dec r25
+ 234 00b4 01F4      		brne 0b
+ 235               	.L4:
   29:main.c        **** 			dnum = ow_rom_search(dnum, sensor_id[nfound]);
- 238               		.loc 1 29 0
- 239 00b8 43E0      		ldi r20,3
- 240               		1:
- 241 00ba 660F      		lsl r22
- 242 00bc 771F      		rol r23
- 243 00be 4A95      		dec r20
- 244 00c0 01F4      		brne 1b
- 245 00c2 6050      		subi r22,lo8(-(sensor_id))
- 246 00c4 7040      		sbci r23,hi8(-(sensor_id))
- 247 00c6 00D0      		rcall ow_rom_search
- 248               	.LVL10:
+ 236               		.loc 1 29 0
+ 237 00b6 43E0      		ldi r20,3
+ 238               		1:
+ 239 00b8 660F      		lsl r22
+ 240 00ba 771F      		rol r23
+ 241 00bc 4A95      		dec r20
+ 242 00be 01F4      		brne 1b
+ 243 00c0 6050      		subi r22,lo8(-(sensor_id))
+ 244 00c2 7040      		sbci r23,hi8(-(sensor_id))
+ 245 00c4 00D0      		rcall ow_rom_search
+ 246               	.LVL10:
   30:main.c        **** 			esp_debugf("Found: "IDSTR", dnum: %u", ID2STR(sensor_id[nfound]), dnum);
- 249               		.loc 1 30 0
- 250 00c8 E091 0000 		lds r30,nfound
- 251 00cc 1F92      		push __zero_reg__
- 252 00ce 8F93      		push r24
- 253 00d0 98E0      		ldi r25,lo8(8)
- 254 00d2 E99F      		mul r30,r25
- 255 00d4 F001      		movw r30,r0
- 256 00d6 1124      		clr __zero_reg__
- 257 00d8 E050      		subi r30,lo8(-(sensor_id))
- 258 00da F040      		sbci r31,hi8(-(sensor_id))
- 259 00dc 9781      		ldd r25,Z+7
- 260 00de 1F92      		push __zero_reg__
- 261 00e0 9F93      		push r25
- 262 00e2 9681      		ldd r25,Z+6
- 263 00e4 1F92      		push __zero_reg__
- 264 00e6 9F93      		push r25
- 265 00e8 9581      		ldd r25,Z+5
- 266 00ea 1F92      		push __zero_reg__
- 267 00ec 9F93      		push r25
- 268 00ee 9481      		ldd r25,Z+4
- 269 00f0 1F92      		push __zero_reg__
- 270 00f2 9F93      		push r25
- 271 00f4 9381      		ldd r25,Z+3
- 272 00f6 1F92      		push __zero_reg__
- 273 00f8 9F93      		push r25
- 274 00fa 9281      		ldd r25,Z+2
- 275 00fc 1F92      		push __zero_reg__
- 276 00fe 9F93      		push r25
- 277 0100 9181      		ldd r25,Z+1
- 278 0102 1F92      		push __zero_reg__
- 279 0104 9F93      		push r25
- 280 0106 9081      		ld r25,Z
- 281 0108 1F92      		push __zero_reg__
- 282 010a 9F93      		push r25
- 283 010c A0E0      		ldi r26,lo8(.LC1)
- 284 010e B0E0      		ldi r27,hi8(.LC1)
- 285 0110 BF93      		push r27
- 286 0112 AF93      		push r26
- 287 0114 EF96      		adiw r28,126-63
- 288 0116 8FAF      		std Y+63,r24
- 289 0118 EF97      		sbiw r28,126-63
- 290 011a 00D0      		rcall esp_debugf
- 291               	.LVL11:
+ 247               		.loc 1 30 0
+ 248 00c6 E091 0000 		lds r30,nfound
+ 249 00ca 1F92      		push __zero_reg__
+ 250 00cc 8F93      		push r24
+ 251 00ce A8E0      		ldi r26,lo8(8)
+ 252 00d0 EA9F      		mul r30,r26
+ 253 00d2 F001      		movw r30,r0
+ 254 00d4 1124      		clr __zero_reg__
+ 255 00d6 E050      		subi r30,lo8(-(sensor_id))
+ 256 00d8 F040      		sbci r31,hi8(-(sensor_id))
+ 257 00da 9781      		ldd r25,Z+7
+ 258 00dc 1F92      		push __zero_reg__
+ 259 00de 9F93      		push r25
+ 260 00e0 9681      		ldd r25,Z+6
+ 261 00e2 1F92      		push __zero_reg__
+ 262 00e4 9F93      		push r25
+ 263 00e6 9581      		ldd r25,Z+5
+ 264 00e8 1F92      		push __zero_reg__
+ 265 00ea 9F93      		push r25
+ 266 00ec 9481      		ldd r25,Z+4
+ 267 00ee 1F92      		push __zero_reg__
+ 268 00f0 9F93      		push r25
+ 269 00f2 9381      		ldd r25,Z+3
+ 270 00f4 1F92      		push __zero_reg__
+ 271 00f6 9F93      		push r25
+ 272 00f8 9281      		ldd r25,Z+2
+ 273 00fa 1F92      		push __zero_reg__
+ 274 00fc 9F93      		push r25
+ 275 00fe 9181      		ldd r25,Z+1
+ 276 0100 1F92      		push __zero_reg__
+ 277 0102 9F93      		push r25
+ 278 0104 9081      		ld r25,Z
+ 279 0106 1F92      		push __zero_reg__
+ 280 0108 9F93      		push r25
+ 281 010a 5F92      		push r5
+ 282 010c 4F92      		push r4
+ 283 010e EF96      		adiw r28,126-63
+ 284 0110 8FAF      		std Y+63,r24
+ 285 0112 EF97      		sbiw r28,126-63
+ 286 0114 00D0      		rcall esp_debugf
+ 287               	.LVL11:
   31:main.c        **** 			nfound++;
- 292               		.loc 1 31 0
- 293 011c 9091 0000 		lds r25,nfound
- 294 0120 9F5F      		subi r25,lo8(-(1))
- 295 0122 9093 0000 		sts nfound,r25
- 296               	.LVL12:
+ 288               		.loc 1 31 0
+ 289 0116 9091 0000 		lds r25,nfound
+ 290 011a 9F5F      		subi r25,lo8(-(1))
+ 291 011c 9093 0000 		sts nfound,r25
+ 292               	.LVL12:
   27:main.c        **** 		while (dnum != OW_LAST_DEVICE) {
- 297               		.loc 1 27 0
- 298 0126 0FB6      		in __tmp_reg__,__SREG__
- 299 0128 F894      		cli
- 300 012a DEBF      		out __SP_H__,r29
- 301 012c 0FBE      		out __SREG__,__tmp_reg__
- 302 012e CDBF      		out __SP_L__,r28
- 303 0130 EF96      		adiw r28,126-63
- 304 0132 8FAD      		ldd r24,Y+63
- 305 0134 EF97      		sbiw r28,126-63
- 306 0136 8111      		cpse r24,__zero_reg__
- 307 0138 00C0      		rjmp .L6
+ 293               		.loc 1 27 0
+ 294 0120 0FB6      		in __tmp_reg__,__SREG__
+ 295 0122 F894      		cli
+ 296 0124 DEBF      		out __SP_H__,r29
+ 297 0126 0FBE      		out __SREG__,__tmp_reg__
+ 298 0128 CDBF      		out __SP_L__,r28
+ 299 012a EF96      		adiw r28,126-63
+ 300 012c 8FAD      		ldd r24,Y+63
+ 301 012e EF97      		sbiw r28,126-63
+ 302 0130 8111      		cpse r24,__zero_reg__
+ 303 0132 00C0      		rjmp .L6
   34:main.c        **** 		if (!nfound) {
- 308               		.loc 1 34 0
- 309 013a 9111      		cpse r25,__zero_reg__
- 310 013c 00C0      		rjmp .L7
+ 304               		.loc 1 34 0
+ 305 0134 9111      		cpse r25,__zero_reg__
+ 306 0136 00C0      		rjmp .L7
   35:main.c        **** 			esp_debug("Error: No sensor founds!");
- 311               		.loc 1 35 0
- 312 013e 80E0      		ldi r24,lo8(.LC2)
- 313 0140 90E0      		ldi r25,hi8(.LC2)
- 314 0142 00D0      		rcall esp_debug
- 315               	.LVL13:
+ 307               		.loc 1 35 0
+ 308 0138 80E0      		ldi r24,lo8(.LC2)
+ 309 013a 90E0      		ldi r25,hi8(.LC2)
+ 310 013c 00D0      		rcall esp_debug
+ 311               	.LVL13:
   36:main.c        **** 			lcd_clrscr();
- 316               		.loc 1 36 0
- 317 0144 00D0      		rcall lcd_clrscr
- 318               	.LVL14:
+ 312               		.loc 1 36 0
+ 313 013e 00D0      		rcall lcd_clrscr
+ 314               	.LVL14:
   37:main.c        **** 			lcd_putsf("No sensor found");
- 319               		.loc 1 37 0
- 320 0146 9F92      		push r9
- 321 0148 8F92      		push r8
- 322 014a 00D0      		rcall lcd_putsf
- 323               	.LVL15:
- 324 014c 0F90      		pop __tmp_reg__
- 325 014e 0F90      		pop __tmp_reg__
- 326 0150 00C0      		rjmp .L8
- 327               	.LVL16:
- 328               	.L7:
+ 315               		.loc 1 37 0
+ 316 0140 9F92      		push r9
+ 317 0142 8F92      		push r8
+ 318 0144 00D0      		rcall lcd_putsf
+ 319               	.LVL15:
+ 320 0146 0F90      		pop __tmp_reg__
+ 321 0148 0F90      		pop __tmp_reg__
+ 322 014a 00C0      		rjmp .L8
+ 323               	.LVL16:
+ 324               	.L7:
   41:main.c        **** 		esp_debugf("Found: %u", nfound);
- 329               		.loc 1 41 0
- 330 0152 1F92      		push __zero_reg__
- 331 0154 9F93      		push r25
- 332 0156 A0E0      		ldi r26,lo8(.LC4)
- 333 0158 B0E0      		ldi r27,hi8(.LC4)
- 334 015a BF93      		push r27
- 335 015c AF93      		push r26
- 336 015e 00D0      		rcall esp_debugf
- 337               	.LVL17:
- 338 0160 0F90      		pop __tmp_reg__
- 339 0162 0F90      		pop __tmp_reg__
- 340 0164 0F90      		pop __tmp_reg__
- 341 0166 0F90      		pop __tmp_reg__
- 342               	.L3:
+ 325               		.loc 1 41 0
+ 326 014c 1F92      		push __zero_reg__
+ 327 014e 9F93      		push r25
+ 328 0150 A0E0      		ldi r26,lo8(.LC4)
+ 329 0152 B0E0      		ldi r27,hi8(.LC4)
+ 330 0154 BF93      		push r27
+ 331 0156 AF93      		push r26
+ 332 0158 00D0      		rcall esp_debugf
+ 333               	.LVL17:
+ 334 015a 0F90      		pop __tmp_reg__
+ 335 015c 0F90      		pop __tmp_reg__
+ 336 015e 0F90      		pop __tmp_reg__
+ 337 0160 0F90      		pop __tmp_reg__
+ 338               	.L3:
   23:main.c        **** 		uint8_t dnum = OW_SEARCH_FIRST;
- 343               		.loc 1 23 0
- 344 0168 B12C      		mov r11,__zero_reg__
- 345               	.L9:
- 346               	.LVL18:
- 347               	.LBE20:
+ 339               		.loc 1 23 0
+ 340 0162 B12C      		mov r11,__zero_reg__
+ 341               	.L9:
+ 342               	.LVL18:
+ 343               	.LBE21:
   45:main.c        **** 	for (i = 0; i < nfound; i++) {
- 348               		.loc 1 45 0
- 349 016a 8091 0000 		lds r24,nfound
- 350 016e B816      		cp r11,r24
- 351 0170 00F4      		brsh .L45
+ 344               		.loc 1 45 0
+ 345 0164 8091 0000 		lds r24,nfound
+ 346 0168 B816      		cp r11,r24
+ 347 016a 00F4      		brsh .L45
   46:main.c        **** 		if (DS18X20_conversion_in_progress()) return;
- 352               		.loc 1 46 0
- 353 0172 00D0      		rcall DS18X20_conversion_in_progress
- 354               	.LVL19:
- 355 0174 8111      		cpse r24,__zero_reg__
- 356 0176 00C0      		rjmp .L8
+ 348               		.loc 1 46 0
+ 349 016c 00D0      		rcall DS18X20_conversion_in_progress
+ 350               	.LVL19:
+ 351 016e 8111      		cpse r24,__zero_reg__
+ 352 0170 00C0      		rjmp .L8
   47:main.c        **** 		DS18X20_read_decicelsius(&sensor_id[i][0], &temp[i]);
- 357               		.loc 1 47 0
- 358 0178 8B2D      		mov r24,r11
- 359 017a 90E0      		ldi r25,0
- 360 017c BC01      		movw r22,r24
- 361 017e 660F      		lsl r22
- 362 0180 771F      		rol r23
- 363 0182 6050      		subi r22,lo8(-(temp))
- 364 0184 7040      		sbci r23,hi8(-(temp))
- 365 0186 33E0      		ldi r19,3
- 366               		1:
- 367 0188 880F      		lsl r24
- 368 018a 991F      		rol r25
- 369 018c 3A95      		dec r19
- 370 018e 01F4      		brne 1b
- 371 0190 8050      		subi r24,lo8(-(sensor_id))
- 372 0192 9040      		sbci r25,hi8(-(sensor_id))
- 373 0194 00D0      		rcall DS18X20_read_decicelsius
- 374               	.LVL20:
+ 353               		.loc 1 47 0
+ 354 0172 8B2D      		mov r24,r11
+ 355 0174 90E0      		ldi r25,0
+ 356 0176 BC01      		movw r22,r24
+ 357 0178 660F      		lsl r22
+ 358 017a 771F      		rol r23
+ 359 017c 6050      		subi r22,lo8(-(temp))
+ 360 017e 7040      		sbci r23,hi8(-(temp))
+ 361 0180 33E0      		ldi r19,3
+ 362               		1:
+ 363 0182 880F      		lsl r24
+ 364 0184 991F      		rol r25
+ 365 0186 3A95      		dec r19
+ 366 0188 01F4      		brne 1b
+ 367 018a 8050      		subi r24,lo8(-(sensor_id))
+ 368 018c 9040      		sbci r25,hi8(-(sensor_id))
+ 369 018e 00D0      		rcall DS18X20_read_decicelsius
+ 370               	.LVL20:
   45:main.c        **** 	for (i = 0; i < nfound; i++) {
- 375               		.loc 1 45 0
- 376 0196 B394      		inc r11
- 377               	.LVL21:
- 378 0198 00C0      		rjmp .L9
- 379               	.L45:
+ 371               		.loc 1 45 0
+ 372 0190 B394      		inc r11
+ 373               	.LVL21:
+ 374 0192 00C0      		rjmp .L9
+ 375               	.L45:
   50:main.c        **** 	lcd_clrscr();
- 380               		.loc 1 50 0
- 381 019a 00D0      		rcall lcd_clrscr
- 382               	.LVL22:
+ 376               		.loc 1 50 0
+ 377 0194 00D0      		rcall lcd_clrscr
+ 378               	.LVL22:
   52:main.c        **** 	if (nfound == 1) {
- 383               		.loc 1 52 0
- 384 019c 8091 0000 		lds r24,nfound
- 385 01a0 8130      		cpi r24,lo8(1)
- 386 01a2 01F4      		brne .L11
+ 379               		.loc 1 52 0
+ 380 0196 8091 0000 		lds r24,nfound
+ 381 019a 8130      		cpi r24,lo8(1)
+ 382 019c 01F4      		brne .L11
   53:main.c        **** 		lcd_putsf("t1:%d,%d", temp[0] / 10, temp[0] % 10);
- 387               		.loc 1 53 0
- 388 01a4 8091 0000 		lds r24,temp
- 389 01a8 9091 0000 		lds r25,temp+1
- 390 01ac B801      		movw r22,r16
- 391 01ae 00D0      		rcall __divmodhi4
- 392 01b0 9F93      		push r25
- 393 01b2 8F93      		push r24
- 394 01b4 7F93      		push r23
- 395 01b6 6F93      		push r22
- 396 01b8 FF92      		push r15
- 397 01ba EF92      		push r14
- 398 01bc 00D0      		rcall lcd_putsf
- 399               	.LVL23:
- 400 01be 0F90      		pop __tmp_reg__
- 401 01c0 0F90      		pop __tmp_reg__
- 402 01c2 0F90      		pop __tmp_reg__
- 403 01c4 0F90      		pop __tmp_reg__
- 404 01c6 0F90      		pop __tmp_reg__
- 405 01c8 0F90      		pop __tmp_reg__
- 406 01ca 00C0      		rjmp .L12
- 407               	.L11:
+ 383               		.loc 1 53 0
+ 384 019e 8091 0000 		lds r24,temp
+ 385 01a2 9091 0000 		lds r25,temp+1
+ 386 01a6 B801      		movw r22,r16
+ 387 01a8 00D0      		rcall __divmodhi4
+ 388 01aa 9F93      		push r25
+ 389 01ac 8F93      		push r24
+ 390 01ae 7F93      		push r23
+ 391 01b0 6F93      		push r22
+ 392 01b2 FF92      		push r15
+ 393 01b4 EF92      		push r14
+ 394 01b6 00D0      		rcall lcd_putsf
+ 395               	.LVL23:
+ 396 01b8 0F90      		pop __tmp_reg__
+ 397 01ba 0F90      		pop __tmp_reg__
+ 398 01bc 0F90      		pop __tmp_reg__
+ 399 01be 0F90      		pop __tmp_reg__
+ 400 01c0 0F90      		pop __tmp_reg__
+ 401 01c2 0F90      		pop __tmp_reg__
+ 402 01c4 00C0      		rjmp .L12
+ 403               	.L11:
   54:main.c        **** 	} else if (nfound == 2) {
- 408               		.loc 1 54 0
- 409 01cc 8230      		cpi r24,lo8(2)
- 410 01ce 01F4      		brne .L13
+ 404               		.loc 1 54 0
+ 405 01c6 8230      		cpi r24,lo8(2)
+ 406 01c8 01F4      		brne .L13
   55:main.c        **** 		lcd_putsf("t1:%d,%d", temp[0] / 10, temp[0] % 10);
- 411               		.loc 1 55 0
- 412 01d0 8091 0000 		lds r24,temp
- 413 01d4 9091 0000 		lds r25,temp+1
- 414 01d8 B801      		movw r22,r16
- 415 01da 00D0      		rcall __divmodhi4
- 416 01dc 9F93      		push r25
- 417 01de 8F93      		push r24
- 418 01e0 7F93      		push r23
- 419 01e2 6F93      		push r22
- 420 01e4 FF92      		push r15
- 421 01e6 EF92      		push r14
- 422 01e8 00D0      		rcall lcd_putsf
- 423               	.LVL24:
+ 407               		.loc 1 55 0
+ 408 01ca 8091 0000 		lds r24,temp
+ 409 01ce 9091 0000 		lds r25,temp+1
+ 410 01d2 B801      		movw r22,r16
+ 411 01d4 00D0      		rcall __divmodhi4
+ 412 01d6 9F93      		push r25
+ 413 01d8 8F93      		push r24
+ 414 01da 7F93      		push r23
+ 415 01dc 6F93      		push r22
+ 416 01de FF92      		push r15
+ 417 01e0 EF92      		push r14
+ 418 01e2 00D0      		rcall lcd_putsf
+ 419               	.LVL24:
   56:main.c        **** 		lcd_goto(0x40);
- 424               		.loc 1 56 0
- 425 01ea 80E4      		ldi r24,lo8(64)
- 426 01ec 00D0      		rcall lcd_goto
- 427               	.LVL25:
+ 420               		.loc 1 56 0
+ 421 01e4 80E4      		ldi r24,lo8(64)
+ 422 01e6 00D0      		rcall lcd_goto
+ 423               	.LVL25:
   57:main.c        **** 		lcd_putsf("t2:%d,%d", temp[1] / 10, temp[1] % 10);
- 428               		.loc 1 57 0
- 429 01ee 8091 0000 		lds r24,temp+2
- 430 01f2 9091 0000 		lds r25,temp+2+1
- 431 01f6 B801      		movw r22,r16
- 432 01f8 00D0      		rcall __divmodhi4
- 433 01fa 9F93      		push r25
- 434 01fc 8F93      		push r24
- 435 01fe 7F93      		push r23
- 436 0200 6F93      		push r22
- 437 0202 7F92      		push r7
- 438 0204 6F92      		push r6
- 439 0206 00C0      		rjmp .L43
- 440               	.L13:
+ 424               		.loc 1 57 0
+ 425 01e8 8091 0000 		lds r24,temp+2
+ 426 01ec 9091 0000 		lds r25,temp+2+1
+ 427 01f0 B801      		movw r22,r16
+ 428 01f2 00D0      		rcall __divmodhi4
+ 429 01f4 9F93      		push r25
+ 430 01f6 8F93      		push r24
+ 431 01f8 7F93      		push r23
+ 432 01fa 6F93      		push r22
+ 433 01fc 7F92      		push r7
+ 434 01fe 6F92      		push r6
+ 435 0200 00C0      		rjmp .L43
+ 436               	.L13:
   58:main.c        **** 	} else if (nfound == 3) {
- 441               		.loc 1 58 0
- 442 0208 8330      		cpi r24,lo8(3)
- 443 020a 01F4      		brne .L12
+ 437               		.loc 1 58 0
+ 438 0202 8330      		cpi r24,lo8(3)
+ 439 0204 01F4      		brne .L12
   59:main.c        **** 		lcd_putsf("t1:%d,%d t2:%d,%d", temp[0] / 10, temp[0] % 10, temp[1] / 10, temp[1] % 10);
- 444               		.loc 1 59 0
- 445 020c 8091 0000 		lds r24,temp+2
- 446 0210 9091 0000 		lds r25,temp+2+1
- 447 0214 2091 0000 		lds r18,temp
- 448 0218 3091 0000 		lds r19,temp+1
- 449 021c B801      		movw r22,r16
- 450 021e 00D0      		rcall __divmodhi4
- 451 0220 9F93      		push r25
- 452 0222 8F93      		push r24
- 453 0224 7F93      		push r23
- 454 0226 6F93      		push r22
- 455 0228 C901      		movw r24,r18
- 456 022a B801      		movw r22,r16
- 457 022c 00D0      		rcall __divmodhi4
- 458 022e 9F93      		push r25
- 459 0230 8F93      		push r24
- 460 0232 7F93      		push r23
- 461 0234 6F93      		push r22
- 462 0236 A0E0      		ldi r26,lo8(.LC7)
- 463 0238 B0E0      		ldi r27,hi8(.LC7)
- 464 023a BF93      		push r27
- 465 023c AF93      		push r26
- 466 023e 00D0      		rcall lcd_putsf
- 467               	.LVL26:
+ 440               		.loc 1 59 0
+ 441 0206 8091 0000 		lds r24,temp+2
+ 442 020a 9091 0000 		lds r25,temp+2+1
+ 443 020e 2091 0000 		lds r18,temp
+ 444 0212 3091 0000 		lds r19,temp+1
+ 445 0216 B801      		movw r22,r16
+ 446 0218 00D0      		rcall __divmodhi4
+ 447 021a 9F93      		push r25
+ 448 021c 8F93      		push r24
+ 449 021e 7F93      		push r23
+ 450 0220 6F93      		push r22
+ 451 0222 C901      		movw r24,r18
+ 452 0224 B801      		movw r22,r16
+ 453 0226 00D0      		rcall __divmodhi4
+ 454 0228 9F93      		push r25
+ 455 022a 8F93      		push r24
+ 456 022c 7F93      		push r23
+ 457 022e 6F93      		push r22
+ 458 0230 A0E0      		ldi r26,lo8(.LC7)
+ 459 0232 B0E0      		ldi r27,hi8(.LC7)
+ 460 0234 BF93      		push r27
+ 461 0236 AF93      		push r26
+ 462 0238 00D0      		rcall lcd_putsf
+ 463               	.LVL26:
   60:main.c        **** 		lcd_goto(0x40);
- 468               		.loc 1 60 0
- 469 0240 80E4      		ldi r24,lo8(64)
- 470 0242 00D0      		rcall lcd_goto
- 471               	.LVL27:
+ 464               		.loc 1 60 0
+ 465 023a 80E4      		ldi r24,lo8(64)
+ 466 023c 00D0      		rcall lcd_goto
+ 467               	.LVL27:
   61:main.c        **** 		lcd_putsf("t3:%d,%d", temp[2] / 10, temp[2] % 10);
- 472               		.loc 1 61 0
- 473 0244 8091 0000 		lds r24,temp+4
- 474 0248 9091 0000 		lds r25,temp+4+1
- 475 024c B801      		movw r22,r16
- 476 024e 00D0      		rcall __divmodhi4
- 477 0250 9F93      		push r25
- 478 0252 8F93      		push r24
- 479 0254 7F93      		push r23
- 480 0256 6F93      		push r22
- 481 0258 3F92      		push r3
- 482 025a 2F92      		push r2
- 483               	.L43:
- 484 025c 00D0      		rcall lcd_putsf
- 485               	.LVL28:
- 486 025e 0FB6      		in __tmp_reg__,__SREG__
- 487 0260 F894      		cli
- 488 0262 DEBF      		out __SP_H__,r29
- 489 0264 0FBE      		out __SREG__,__tmp_reg__
- 490 0266 CDBF      		out __SP_L__,r28
- 491               	.L12:
-  63:main.c        **** 	esp_debugf("t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
- 492               		.loc 1 63 0
- 493 0268 8091 0000 		lds r24,temp+5
- 494 026c 8F93      		push r24
- 495 026e 8091 0000 		lds r24,temp+4
- 496 0272 8F93      		push r24
- 497 0274 8091 0000 		lds r24,temp+3
- 498 0278 8F93      		push r24
- 499 027a 8091 0000 		lds r24,temp+2
- 500 027e 8F93      		push r24
- 501 0280 8091 0000 		lds r24,temp+1
- 502 0284 8F93      		push r24
- 503 0286 8091 0000 		lds r24,temp
- 504 028a 8F93      		push r24
- 505 028c 5F92      		push r5
- 506 028e 4F92      		push r4
- 507 0290 00D0      		rcall esp_debugf
- 508               	.LVL29:
+ 468               		.loc 1 61 0
+ 469 023e 8091 0000 		lds r24,temp+4
+ 470 0242 9091 0000 		lds r25,temp+4+1
+ 471 0246 B801      		movw r22,r16
+ 472 0248 00D0      		rcall __divmodhi4
+ 473 024a 9F93      		push r25
+ 474 024c 8F93      		push r24
+ 475 024e 7F93      		push r23
+ 476 0250 6F93      		push r22
+ 477 0252 3F92      		push r3
+ 478 0254 2F92      		push r2
+ 479               	.L43:
+ 480 0256 00D0      		rcall lcd_putsf
+ 481               	.LVL28:
+ 482 0258 0FB6      		in __tmp_reg__,__SREG__
+ 483 025a F894      		cli
+ 484 025c DEBF      		out __SP_H__,r29
+ 485 025e 0FBE      		out __SREG__,__tmp_reg__
+ 486 0260 CDBF      		out __SP_L__,r28
+ 487               	.L12:
   64:main.c        **** 	DS18X20_start_meas( DS18X20_POWER_EXTERN, NULL);
- 509               		.loc 1 64 0
- 510 0292 60E0      		ldi r22,0
- 511 0294 70E0      		ldi r23,0
- 512 0296 81E0      		ldi r24,lo8(1)
- 513 0298 00D0      		rcall DS18X20_start_meas
- 514               	.LVL30:
- 515 029a 0FB6      		in __tmp_reg__,__SREG__
- 516 029c F894      		cli
- 517 029e DEBF      		out __SP_H__,r29
- 518 02a0 0FBE      		out __SREG__,__tmp_reg__
- 519 02a2 CDBF      		out __SP_L__,r28
- 520               	.LVL31:
- 521               	.L8:
- 522               	.LBE22:
- 523               	.LBE28:
+ 488               		.loc 1 64 0
+ 489 0262 60E0      		ldi r22,0
+ 490 0264 70E0      		ldi r23,0
+ 491 0266 81E0      		ldi r24,lo8(1)
+ 492 0268 00D0      		rcall DS18X20_start_meas
+ 493               	.LVL29:
+ 494               	.L8:
+ 495               	.LBE23:
+ 496               	.LBE29:
  101:main.c        **** 		if (esp_isMsgToExe()) {
- 524               		.loc 1 101 0
- 525 02a4 00D0      		rcall esp_isMsgToExe
- 526               	.LVL32:
- 527 02a6 8823      		tst r24
- 528 02a8 01F4      		brne .+2
- 529 02aa 00C0      		rjmp .L15
- 530               	.LBB29:
+ 497               		.loc 1 101 0
+ 498 026a 00D0      		rcall esp_isMsgToExe
+ 499               	.LVL30:
+ 500 026c 8823      		tst r24
+ 501 026e 01F4      		brne .+2
+ 502 0270 00C0      		rjmp .L15
+ 503               	.LBB30:
  103:main.c        **** 			esp_getMsg_done(msg_buffer);
- 531               		.loc 1 103 0
- 532 02ac CE01      		movw r24,r28
- 533 02ae 0196      		adiw r24,1
- 534 02b0 00D0      		rcall esp_getMsg_done
- 535               	.LVL33:
+ 504               		.loc 1 103 0
+ 505 0272 CE01      		movw r24,r28
+ 506 0274 0196      		adiw r24,1
+ 507 0276 00D0      		rcall esp_getMsg_done
+ 508               	.LVL31:
  105:main.c        **** 			if (strcmp(msg_buffer, CMD_HELLO_AVR) == 0) {
- 536               		.loc 1 105 0
- 537 02b2 60E0      		ldi r22,lo8(.LC10)
- 538 02b4 70E0      		ldi r23,hi8(.LC10)
- 539 02b6 CE01      		movw r24,r28
- 540 02b8 0196      		adiw r24,1
- 541 02ba 00D0      		rcall strcmp
- 542               	.LVL34:
- 543 02bc 892B      		or r24,r25
- 544 02be 01F4      		brne .L16
+ 509               		.loc 1 105 0
+ 510 0278 60E0      		ldi r22,lo8(.LC9)
+ 511 027a 70E0      		ldi r23,hi8(.LC9)
+ 512 027c CE01      		movw r24,r28
+ 513 027e 0196      		adiw r24,1
+ 514 0280 00D0      		rcall strcmp
+ 515               	.LVL32:
+ 516 0282 892B      		or r24,r25
+ 517 0284 01F4      		brne .L16
  107:main.c        **** 				send(RESPONSE_HELLO_AVR);
- 545               		.loc 1 107 0
- 546 02c0 80E0      		ldi r24,lo8(.LC10)
- 547 02c2 90E0      		ldi r25,hi8(.LC10)
- 548 02c4 00D0      		rcall send
- 549               	.LVL35:
- 550 02c6 00C0      		rjmp .L32
- 551               	.L16:
+ 518               		.loc 1 107 0
+ 519 0286 80E0      		ldi r24,lo8(.LC9)
+ 520 0288 90E0      		ldi r25,hi8(.LC9)
+ 521 028a 00D0      		rcall send
+ 522               	.LVL33:
+ 523 028c 00C0      		rjmp .L32
+ 524               	.L16:
  109:main.c        **** 			} else if (strcmp(msg_buffer, CMD_GET_SENSORS_ID) == 0) {
- 552               		.loc 1 109 0
- 553 02c8 60E0      		ldi r22,lo8(.LC11)
- 554 02ca 70E0      		ldi r23,hi8(.LC11)
- 555 02cc CE01      		movw r24,r28
- 556 02ce 0196      		adiw r24,1
- 557 02d0 00D0      		rcall strcmp
- 558               	.LVL36:
- 559 02d2 892B      		or r24,r25
- 560 02d4 01F0      		breq .L18
- 561 02d6 40E0      		ldi r20,0
- 562 02d8 B12C      		mov r11,__zero_reg__
- 563               	.LBB25:
- 564               		.loc 1 130 0
- 565 02da 90E0      		ldi r25,lo8(.LC13)
- 566 02dc E92E      		mov r14,r25
- 567 02de 90E0      		ldi r25,hi8(.LC13)
- 568 02e0 F92E      		mov r15,r25
- 569 02e2 00C0      		rjmp .L19
- 570               	.L18:
- 571               	.LBE25:
+ 525               		.loc 1 109 0
+ 526 028e 60E0      		ldi r22,lo8(.LC10)
+ 527 0290 70E0      		ldi r23,hi8(.LC10)
+ 528 0292 CE01      		movw r24,r28
+ 529 0294 0196      		adiw r24,1
+ 530 0296 00D0      		rcall strcmp
+ 531               	.LVL34:
+ 532 0298 892B      		or r24,r25
+ 533 029a 01F0      		breq .L18
+ 534 029c 40E0      		ldi r20,0
+ 535 029e B12C      		mov r11,__zero_reg__
+ 536               	.LBB26:
+ 537               		.loc 1 130 0
+ 538 02a0 90E0      		ldi r25,lo8(.LC12)
+ 539 02a2 E92E      		mov r14,r25
+ 540 02a4 90E0      		ldi r25,hi8(.LC12)
+ 541 02a6 F92E      		mov r15,r25
+ 542 02a8 00C0      		rjmp .L19
+ 543               	.L18:
+ 544               	.LBE26:
  110:main.c        **** 				if (nfound == 0) {
- 572               		.loc 1 110 0
- 573 02e4 8091 0000 		lds r24,nfound
- 574 02e8 8111      		cpse r24,__zero_reg__
- 575 02ea 00C0      		rjmp .L20
+ 545               		.loc 1 110 0
+ 546 02aa 8091 0000 		lds r24,nfound
+ 547 02ae 8111      		cpse r24,__zero_reg__
+ 548 02b0 00C0      		rjmp .L20
  111:main.c        **** 					esp_sendf("");
- 576               		.loc 1 111 0
- 577 02ec 80E0      		ldi r24,lo8(.LC12)
- 578 02ee 90E0      		ldi r25,hi8(.LC12)
- 579 02f0 00C0      		rjmp .L40
- 580               	.L20:
+ 549               		.loc 1 111 0
+ 550 02b2 80E0      		ldi r24,lo8(.LC11)
+ 551 02b4 90E0      		ldi r25,hi8(.LC11)
+ 552 02b6 00C0      		rjmp .L40
+ 553               	.L20:
  112:main.c        **** 				} else if (nfound == 1) {
- 581               		.loc 1 112 0
- 582 02f2 8130      		cpi r24,lo8(1)
- 583 02f4 01F4      		brne .L21
+ 554               		.loc 1 112 0
+ 555 02b8 8130      		cpi r24,lo8(1)
+ 556 02ba 01F4      		brne .L21
  113:main.c        **** 					esp_sendf(IDSTR, ID2STR(sensor_id[0]));
- 584               		.loc 1 113 0
- 585 02f6 8091 0000 		lds r24,sensor_id+7
- 586 02fa 1F92      		push __zero_reg__
- 587 02fc 8F93      		push r24
- 588 02fe 8091 0000 		lds r24,sensor_id+6
- 589 0302 1F92      		push __zero_reg__
- 590 0304 8F93      		push r24
- 591 0306 8091 0000 		lds r24,sensor_id+5
- 592 030a 1F92      		push __zero_reg__
- 593 030c 8F93      		push r24
- 594 030e 8091 0000 		lds r24,sensor_id+4
- 595 0312 1F92      		push __zero_reg__
- 596 0314 8F93      		push r24
- 597 0316 8091 0000 		lds r24,sensor_id+3
- 598 031a 1F92      		push __zero_reg__
- 599 031c 8F93      		push r24
- 600 031e 8091 0000 		lds r24,sensor_id+2
- 601 0322 1F92      		push __zero_reg__
- 602 0324 8F93      		push r24
- 603 0326 8091 0000 		lds r24,sensor_id+1
- 604 032a 1F92      		push __zero_reg__
- 605 032c 8F93      		push r24
- 606 032e 8091 0000 		lds r24,sensor_id
- 607 0332 1F92      		push __zero_reg__
- 608 0334 8F93      		push r24
- 609 0336 80E0      		ldi r24,lo8(.LC13)
- 610 0338 90E0      		ldi r25,hi8(.LC13)
- 611 033a 9F93      		push r25
- 612 033c 8F93      		push r24
- 613 033e 00D0      		rcall esp_sendf
- 614               	.LVL37:
- 615 0340 00C0      		rjmp .L41
- 616               	.L21:
+ 557               		.loc 1 113 0
+ 558 02bc 8091 0000 		lds r24,sensor_id+7
+ 559 02c0 1F92      		push __zero_reg__
+ 560 02c2 8F93      		push r24
+ 561 02c4 8091 0000 		lds r24,sensor_id+6
+ 562 02c8 1F92      		push __zero_reg__
+ 563 02ca 8F93      		push r24
+ 564 02cc 8091 0000 		lds r24,sensor_id+5
+ 565 02d0 1F92      		push __zero_reg__
+ 566 02d2 8F93      		push r24
+ 567 02d4 8091 0000 		lds r24,sensor_id+4
+ 568 02d8 1F92      		push __zero_reg__
+ 569 02da 8F93      		push r24
+ 570 02dc 8091 0000 		lds r24,sensor_id+3
+ 571 02e0 1F92      		push __zero_reg__
+ 572 02e2 8F93      		push r24
+ 573 02e4 8091 0000 		lds r24,sensor_id+2
+ 574 02e8 1F92      		push __zero_reg__
+ 575 02ea 8F93      		push r24
+ 576 02ec 8091 0000 		lds r24,sensor_id+1
+ 577 02f0 1F92      		push __zero_reg__
+ 578 02f2 8F93      		push r24
+ 579 02f4 8091 0000 		lds r24,sensor_id
+ 580 02f8 1F92      		push __zero_reg__
+ 581 02fa 8F93      		push r24
+ 582 02fc 80E0      		ldi r24,lo8(.LC12)
+ 583 02fe 90E0      		ldi r25,hi8(.LC12)
+ 584 0300 9F93      		push r25
+ 585 0302 8F93      		push r24
+ 586 0304 00D0      		rcall esp_sendf
+ 587               	.LVL35:
+ 588 0306 00C0      		rjmp .L41
+ 589               	.L21:
  114:main.c        **** 				} else if (nfound == 2) {
- 617               		.loc 1 114 0
- 618 0342 8230      		cpi r24,lo8(2)
- 619 0344 01F0      		breq .+2
- 620 0346 00C0      		rjmp .L22
+ 590               		.loc 1 114 0
+ 591 0308 8230      		cpi r24,lo8(2)
+ 592 030a 01F0      		breq .+2
+ 593 030c 00C0      		rjmp .L22
  115:main.c        **** 					esp_sendf(IDSTR", "IDSTR, ID2STR(sensor_id[0]), ID2STR(sensor_id[1]));
- 621               		.loc 1 115 0
- 622 0348 8091 0000 		lds r24,sensor_id+15
- 623 034c 1F92      		push __zero_reg__
- 624 034e 8F93      		push r24
- 625 0350 8091 0000 		lds r24,sensor_id+14
- 626 0354 1F92      		push __zero_reg__
- 627 0356 8F93      		push r24
- 628 0358 8091 0000 		lds r24,sensor_id+13
- 629 035c 1F92      		push __zero_reg__
- 630 035e 8F93      		push r24
- 631 0360 8091 0000 		lds r24,sensor_id+12
- 632 0364 1F92      		push __zero_reg__
- 633 0366 8F93      		push r24
- 634 0368 8091 0000 		lds r24,sensor_id+11
- 635 036c 1F92      		push __zero_reg__
- 636 036e 8F93      		push r24
- 637 0370 8091 0000 		lds r24,sensor_id+10
- 638 0374 1F92      		push __zero_reg__
- 639 0376 8F93      		push r24
- 640 0378 8091 0000 		lds r24,sensor_id+9
- 641 037c 1F92      		push __zero_reg__
- 642 037e 8F93      		push r24
- 643 0380 8091 0000 		lds r24,sensor_id+8
- 644 0384 1F92      		push __zero_reg__
- 645 0386 8F93      		push r24
- 646 0388 8091 0000 		lds r24,sensor_id+7
- 647 038c 1F92      		push __zero_reg__
- 648 038e 8F93      		push r24
- 649 0390 8091 0000 		lds r24,sensor_id+6
- 650 0394 1F92      		push __zero_reg__
- 651 0396 8F93      		push r24
- 652 0398 8091 0000 		lds r24,sensor_id+5
- 653 039c 1F92      		push __zero_reg__
- 654 039e 8F93      		push r24
- 655 03a0 8091 0000 		lds r24,sensor_id+4
- 656 03a4 1F92      		push __zero_reg__
- 657 03a6 8F93      		push r24
- 658 03a8 8091 0000 		lds r24,sensor_id+3
- 659 03ac 1F92      		push __zero_reg__
- 660 03ae 8F93      		push r24
- 661 03b0 8091 0000 		lds r24,sensor_id+2
- 662 03b4 1F92      		push __zero_reg__
- 663 03b6 8F93      		push r24
- 664 03b8 8091 0000 		lds r24,sensor_id+1
- 665 03bc 1F92      		push __zero_reg__
- 666 03be 8F93      		push r24
- 667 03c0 8091 0000 		lds r24,sensor_id
- 668 03c4 1F92      		push __zero_reg__
- 669 03c6 8F93      		push r24
- 670 03c8 80E0      		ldi r24,lo8(.LC14)
- 671 03ca 90E0      		ldi r25,hi8(.LC14)
- 672 03cc 9F93      		push r25
- 673 03ce 8F93      		push r24
- 674 03d0 00D0      		rcall esp_sendf
- 675               	.LVL38:
- 676 03d2 00C0      		rjmp .L41
- 677               	.L22:
+ 594               		.loc 1 115 0
+ 595 030e 8091 0000 		lds r24,sensor_id+15
+ 596 0312 1F92      		push __zero_reg__
+ 597 0314 8F93      		push r24
+ 598 0316 8091 0000 		lds r24,sensor_id+14
+ 599 031a 1F92      		push __zero_reg__
+ 600 031c 8F93      		push r24
+ 601 031e 8091 0000 		lds r24,sensor_id+13
+ 602 0322 1F92      		push __zero_reg__
+ 603 0324 8F93      		push r24
+ 604 0326 8091 0000 		lds r24,sensor_id+12
+ 605 032a 1F92      		push __zero_reg__
+ 606 032c 8F93      		push r24
+ 607 032e 8091 0000 		lds r24,sensor_id+11
+ 608 0332 1F92      		push __zero_reg__
+ 609 0334 8F93      		push r24
+ 610 0336 8091 0000 		lds r24,sensor_id+10
+ 611 033a 1F92      		push __zero_reg__
+ 612 033c 8F93      		push r24
+ 613 033e 8091 0000 		lds r24,sensor_id+9
+ 614 0342 1F92      		push __zero_reg__
+ 615 0344 8F93      		push r24
+ 616 0346 8091 0000 		lds r24,sensor_id+8
+ 617 034a 1F92      		push __zero_reg__
+ 618 034c 8F93      		push r24
+ 619 034e 8091 0000 		lds r24,sensor_id+7
+ 620 0352 1F92      		push __zero_reg__
+ 621 0354 8F93      		push r24
+ 622 0356 8091 0000 		lds r24,sensor_id+6
+ 623 035a 1F92      		push __zero_reg__
+ 624 035c 8F93      		push r24
+ 625 035e 8091 0000 		lds r24,sensor_id+5
+ 626 0362 1F92      		push __zero_reg__
+ 627 0364 8F93      		push r24
+ 628 0366 8091 0000 		lds r24,sensor_id+4
+ 629 036a 1F92      		push __zero_reg__
+ 630 036c 8F93      		push r24
+ 631 036e 8091 0000 		lds r24,sensor_id+3
+ 632 0372 1F92      		push __zero_reg__
+ 633 0374 8F93      		push r24
+ 634 0376 8091 0000 		lds r24,sensor_id+2
+ 635 037a 1F92      		push __zero_reg__
+ 636 037c 8F93      		push r24
+ 637 037e 8091 0000 		lds r24,sensor_id+1
+ 638 0382 1F92      		push __zero_reg__
+ 639 0384 8F93      		push r24
+ 640 0386 8091 0000 		lds r24,sensor_id
+ 641 038a 1F92      		push __zero_reg__
+ 642 038c 8F93      		push r24
+ 643 038e 80E0      		ldi r24,lo8(.LC13)
+ 644 0390 90E0      		ldi r25,hi8(.LC13)
+ 645 0392 9F93      		push r25
+ 646 0394 8F93      		push r24
+ 647 0396 00D0      		rcall esp_sendf
+ 648               	.LVL36:
+ 649 0398 00C0      		rjmp .L41
+ 650               	.L22:
  116:main.c        **** 				} else if (nfound == 3) {
- 678               		.loc 1 116 0
- 679 03d4 8330      		cpi r24,lo8(3)
- 680 03d6 01F0      		breq .+2
- 681 03d8 00C0      		rjmp .L32
+ 651               		.loc 1 116 0
+ 652 039a 8330      		cpi r24,lo8(3)
+ 653 039c 01F0      		breq .+2
+ 654 039e 00C0      		rjmp .L32
  117:main.c        **** 					esp_sendf(IDSTR", "IDSTR", "IDSTR, ID2STR(sensor_id[0]), ID2STR(sensor_id[1]), ID2STR(sensor_i
- 682               		.loc 1 117 0
- 683 03da 8091 0000 		lds r24,sensor_id+23
- 684 03de 1F92      		push __zero_reg__
- 685 03e0 8F93      		push r24
- 686 03e2 8091 0000 		lds r24,sensor_id+22
- 687 03e6 1F92      		push __zero_reg__
- 688 03e8 8F93      		push r24
- 689 03ea 8091 0000 		lds r24,sensor_id+21
- 690 03ee 1F92      		push __zero_reg__
- 691 03f0 8F93      		push r24
- 692 03f2 8091 0000 		lds r24,sensor_id+20
- 693 03f6 1F92      		push __zero_reg__
- 694 03f8 8F93      		push r24
- 695 03fa 8091 0000 		lds r24,sensor_id+19
- 696 03fe 1F92      		push __zero_reg__
- 697 0400 8F93      		push r24
- 698 0402 8091 0000 		lds r24,sensor_id+18
- 699 0406 1F92      		push __zero_reg__
- 700 0408 8F93      		push r24
- 701 040a 8091 0000 		lds r24,sensor_id+17
- 702 040e 1F92      		push __zero_reg__
- 703 0410 8F93      		push r24
- 704 0412 8091 0000 		lds r24,sensor_id+16
- 705 0416 1F92      		push __zero_reg__
- 706 0418 8F93      		push r24
- 707 041a 8091 0000 		lds r24,sensor_id+15
- 708 041e 1F92      		push __zero_reg__
- 709 0420 8F93      		push r24
- 710 0422 8091 0000 		lds r24,sensor_id+14
- 711 0426 1F92      		push __zero_reg__
- 712 0428 8F93      		push r24
- 713 042a 8091 0000 		lds r24,sensor_id+13
- 714 042e 1F92      		push __zero_reg__
- 715 0430 8F93      		push r24
- 716 0432 8091 0000 		lds r24,sensor_id+12
- 717 0436 1F92      		push __zero_reg__
- 718 0438 8F93      		push r24
- 719 043a 8091 0000 		lds r24,sensor_id+11
- 720 043e 1F92      		push __zero_reg__
- 721 0440 8F93      		push r24
- 722 0442 8091 0000 		lds r24,sensor_id+10
- 723 0446 1F92      		push __zero_reg__
- 724 0448 8F93      		push r24
- 725 044a 8091 0000 		lds r24,sensor_id+9
- 726 044e 1F92      		push __zero_reg__
- 727 0450 8F93      		push r24
- 728 0452 8091 0000 		lds r24,sensor_id+8
- 729 0456 1F92      		push __zero_reg__
- 730 0458 8F93      		push r24
- 731 045a 8091 0000 		lds r24,sensor_id+7
- 732 045e 1F92      		push __zero_reg__
- 733 0460 8F93      		push r24
- 734 0462 8091 0000 		lds r24,sensor_id+6
- 735 0466 1F92      		push __zero_reg__
- 736 0468 8F93      		push r24
- 737 046a 8091 0000 		lds r24,sensor_id+5
- 738 046e 1F92      		push __zero_reg__
- 739 0470 8F93      		push r24
- 740 0472 8091 0000 		lds r24,sensor_id+4
- 741 0476 1F92      		push __zero_reg__
- 742 0478 8F93      		push r24
- 743 047a 8091 0000 		lds r24,sensor_id+3
- 744 047e 1F92      		push __zero_reg__
- 745 0480 8F93      		push r24
- 746 0482 8091 0000 		lds r24,sensor_id+2
- 747 0486 1F92      		push __zero_reg__
- 748 0488 8F93      		push r24
- 749 048a 8091 0000 		lds r24,sensor_id+1
- 750 048e 1F92      		push __zero_reg__
- 751 0490 8F93      		push r24
- 752 0492 8091 0000 		lds r24,sensor_id
- 753 0496 1F92      		push __zero_reg__
- 754 0498 8F93      		push r24
- 755 049a 80E0      		ldi r24,lo8(.LC15)
- 756 049c 90E0      		ldi r25,hi8(.LC15)
- 757 049e 9F93      		push r25
- 758 04a0 8F93      		push r24
- 759 04a2 00D0      		rcall esp_sendf
- 760               	.LVL39:
- 761               	.L41:
- 762 04a4 0FB6      		in __tmp_reg__,__SREG__
- 763 04a6 F894      		cli
- 764 04a8 DEBF      		out __SP_H__,r29
- 765 04aa 0FBE      		out __SREG__,__tmp_reg__
- 766 04ac CDBF      		out __SP_L__,r28
- 767 04ae 00C0      		rjmp .L32
- 768               	.LVL40:
- 769               	.L46:
- 770 04b0 F601      		movw r30,r12
- 771               	.LBB26:
+ 655               		.loc 1 117 0
+ 656 03a0 8091 0000 		lds r24,sensor_id+23
+ 657 03a4 1F92      		push __zero_reg__
+ 658 03a6 8F93      		push r24
+ 659 03a8 8091 0000 		lds r24,sensor_id+22
+ 660 03ac 1F92      		push __zero_reg__
+ 661 03ae 8F93      		push r24
+ 662 03b0 8091 0000 		lds r24,sensor_id+21
+ 663 03b4 1F92      		push __zero_reg__
+ 664 03b6 8F93      		push r24
+ 665 03b8 8091 0000 		lds r24,sensor_id+20
+ 666 03bc 1F92      		push __zero_reg__
+ 667 03be 8F93      		push r24
+ 668 03c0 8091 0000 		lds r24,sensor_id+19
+ 669 03c4 1F92      		push __zero_reg__
+ 670 03c6 8F93      		push r24
+ 671 03c8 8091 0000 		lds r24,sensor_id+18
+ 672 03cc 1F92      		push __zero_reg__
+ 673 03ce 8F93      		push r24
+ 674 03d0 8091 0000 		lds r24,sensor_id+17
+ 675 03d4 1F92      		push __zero_reg__
+ 676 03d6 8F93      		push r24
+ 677 03d8 8091 0000 		lds r24,sensor_id+16
+ 678 03dc 1F92      		push __zero_reg__
+ 679 03de 8F93      		push r24
+ 680 03e0 8091 0000 		lds r24,sensor_id+15
+ 681 03e4 1F92      		push __zero_reg__
+ 682 03e6 8F93      		push r24
+ 683 03e8 8091 0000 		lds r24,sensor_id+14
+ 684 03ec 1F92      		push __zero_reg__
+ 685 03ee 8F93      		push r24
+ 686 03f0 8091 0000 		lds r24,sensor_id+13
+ 687 03f4 1F92      		push __zero_reg__
+ 688 03f6 8F93      		push r24
+ 689 03f8 8091 0000 		lds r24,sensor_id+12
+ 690 03fc 1F92      		push __zero_reg__
+ 691 03fe 8F93      		push r24
+ 692 0400 8091 0000 		lds r24,sensor_id+11
+ 693 0404 1F92      		push __zero_reg__
+ 694 0406 8F93      		push r24
+ 695 0408 8091 0000 		lds r24,sensor_id+10
+ 696 040c 1F92      		push __zero_reg__
+ 697 040e 8F93      		push r24
+ 698 0410 8091 0000 		lds r24,sensor_id+9
+ 699 0414 1F92      		push __zero_reg__
+ 700 0416 8F93      		push r24
+ 701 0418 8091 0000 		lds r24,sensor_id+8
+ 702 041c 1F92      		push __zero_reg__
+ 703 041e 8F93      		push r24
+ 704 0420 8091 0000 		lds r24,sensor_id+7
+ 705 0424 1F92      		push __zero_reg__
+ 706 0426 8F93      		push r24
+ 707 0428 8091 0000 		lds r24,sensor_id+6
+ 708 042c 1F92      		push __zero_reg__
+ 709 042e 8F93      		push r24
+ 710 0430 8091 0000 		lds r24,sensor_id+5
+ 711 0434 1F92      		push __zero_reg__
+ 712 0436 8F93      		push r24
+ 713 0438 8091 0000 		lds r24,sensor_id+4
+ 714 043c 1F92      		push __zero_reg__
+ 715 043e 8F93      		push r24
+ 716 0440 8091 0000 		lds r24,sensor_id+3
+ 717 0444 1F92      		push __zero_reg__
+ 718 0446 8F93      		push r24
+ 719 0448 8091 0000 		lds r24,sensor_id+2
+ 720 044c 1F92      		push __zero_reg__
+ 721 044e 8F93      		push r24
+ 722 0450 8091 0000 		lds r24,sensor_id+1
+ 723 0454 1F92      		push __zero_reg__
+ 724 0456 8F93      		push r24
+ 725 0458 8091 0000 		lds r24,sensor_id
+ 726 045c 1F92      		push __zero_reg__
+ 727 045e 8F93      		push r24
+ 728 0460 80E0      		ldi r24,lo8(.LC14)
+ 729 0462 90E0      		ldi r25,hi8(.LC14)
+ 730 0464 9F93      		push r25
+ 731 0466 8F93      		push r24
+ 732 0468 00D0      		rcall esp_sendf
+ 733               	.LVL37:
+ 734               	.L41:
+ 735 046a 0FB6      		in __tmp_reg__,__SREG__
+ 736 046c F894      		cli
+ 737 046e DEBF      		out __SP_H__,r29
+ 738 0470 0FBE      		out __SREG__,__tmp_reg__
+ 739 0472 CDBF      		out __SP_L__,r28
+ 740 0474 00C0      		rjmp .L32
+ 741               	.LVL38:
+ 742               	.L46:
+ 743 0476 F601      		movw r30,r12
+ 744               	.LBB27:
  131:main.c        **** 
  132:main.c        **** 					for (j = 0; msg_buffer[j] != ':'; j++)
  133:main.c        **** 						;
  134:main.c        **** 					j += 1;
- 772               		.loc 1 134 0
- 773 04b2 80E0      		ldi r24,0
- 774 04b4 90E0      		ldi r25,0
- 775 04b6 A1E0      		ldi r26,lo8(1)
- 776 04b8 B0E0      		ldi r27,0
- 777 04ba AC0F      		add r26,r28
- 778 04bc BD1F      		adc r27,r29
- 779 04be A20F      		add r26,r18
- 780 04c0 B11D      		adc r27,__zero_reg__
- 781 04c2 9D01      		movw r18,r26
- 782               	.LVL41:
- 783               	.L25:
- 784 04c4 482F      		mov r20,r24
- 785               	.LVL42:
+ 745               		.loc 1 134 0
+ 746 0478 80E0      		ldi r24,0
+ 747 047a 90E0      		ldi r25,0
+ 748 047c A1E0      		ldi r26,lo8(1)
+ 749 047e B0E0      		ldi r27,0
+ 750 0480 AC0F      		add r26,r28
+ 751 0482 BD1F      		adc r27,r29
+ 752 0484 A20F      		add r26,r18
+ 753 0486 B11D      		adc r27,__zero_reg__
+ 754 0488 9D01      		movw r18,r26
+ 755               	.LVL39:
+ 756               	.L25:
+ 757 048a 482F      		mov r20,r24
+ 758               	.LVL40:
  135:main.c        **** 
  136:main.c        **** 					for (k = 0; k < IDSTR_LEN && msg_buffer[j + k] == b[k]; k++)
- 786               		.loc 1 136 0 discriminator 2
- 787 04c6 5191      		ld r21,Z+
- 788 04c8 D901      		movw r26,r18
- 789 04ca A80F      		add r26,r24
- 790 04cc B91F      		adc r27,r25
- 791 04ce 6C91      		ld r22,X
- 792 04d0 6517      		cp r22,r21
- 793 04d2 01F4      		brne .+2
- 794 04d4 00C0      		rjmp .L27
- 795               	.LVL43:
- 796               	.L26:
+ 759               		.loc 1 136 0 discriminator 2
+ 760 048c 5191      		ld r21,Z+
+ 761 048e D901      		movw r26,r18
+ 762 0490 A80F      		add r26,r24
+ 763 0492 B91F      		adc r27,r25
+ 764 0494 6C91      		ld r22,X
+ 765 0496 6517      		cp r22,r21
+ 766 0498 01F4      		brne .+2
+ 767 049a 00C0      		rjmp .L27
+ 768               	.LVL41:
+ 769               	.L26:
  128:main.c        **** 				for (i = 0; i < nfound && k != IDSTR_LEN; i++) {
- 797               		.loc 1 128 0
- 798 04d6 B394      		inc r11
- 799               	.LVL44:
- 800               	.L19:
+ 770               		.loc 1 128 0
+ 771 049c B394      		inc r11
+ 772               	.LVL42:
+ 773               	.L19:
  128:main.c        **** 				for (i = 0; i < nfound && k != IDSTR_LEN; i++) {
- 801               		.loc 1 128 0 is_stmt 0 discriminator 1
- 802 04d8 8091 0000 		lds r24,nfound
- 803 04dc B816      		cp r11,r24
- 804 04de 00F0      		brlo .+2
- 805 04e0 00C0      		rjmp .L28
+ 774               		.loc 1 128 0 is_stmt 0 discriminator 1
+ 775 049e 8091 0000 		lds r24,nfound
+ 776 04a2 B816      		cp r11,r24
+ 777 04a4 00F0      		brlo .+2
+ 778 04a6 00C0      		rjmp .L28
  128:main.c        **** 				for (i = 0; i < nfound && k != IDSTR_LEN; i++) {
- 806               		.loc 1 128 0 discriminator 2
- 807 04e2 4731      		cpi r20,lo8(23)
- 808 04e4 01F0      		breq .L31
+ 779               		.loc 1 128 0 discriminator 2
+ 780 04a8 4731      		cpi r20,lo8(23)
+ 781 04aa 01F0      		breq .L31
  130:main.c        **** 					sprintf(b, IDSTR, ID2STR(sensor_id[i]));
- 809               		.loc 1 130 0 is_stmt 1
- 810 04e6 58E0      		ldi r21,lo8(8)
- 811 04e8 B59E      		mul r11,r21
- 812 04ea F001      		movw r30,r0
- 813 04ec 1124      		clr __zero_reg__
- 814 04ee E050      		subi r30,lo8(-(sensor_id))
- 815 04f0 F040      		sbci r31,hi8(-(sensor_id))
- 816 04f2 8781      		ldd r24,Z+7
- 817 04f4 1F92      		push __zero_reg__
- 818 04f6 8F93      		push r24
- 819 04f8 8681      		ldd r24,Z+6
- 820 04fa 1F92      		push __zero_reg__
- 821 04fc 8F93      		push r24
- 822 04fe 8581      		ldd r24,Z+5
- 823 0500 1F92      		push __zero_reg__
- 824 0502 8F93      		push r24
- 825 0504 8481      		ldd r24,Z+4
- 826 0506 1F92      		push __zero_reg__
- 827 0508 8F93      		push r24
- 828 050a 8381      		ldd r24,Z+3
- 829 050c 1F92      		push __zero_reg__
- 830 050e 8F93      		push r24
- 831 0510 8281      		ldd r24,Z+2
- 832 0512 1F92      		push __zero_reg__
- 833 0514 8F93      		push r24
- 834 0516 8181      		ldd r24,Z+1
- 835 0518 1F92      		push __zero_reg__
- 836 051a 8F93      		push r24
- 837 051c 8081      		ld r24,Z
- 838 051e 1F92      		push __zero_reg__
- 839 0520 8F93      		push r24
- 840 0522 FF92      		push r15
- 841 0524 EF92      		push r14
- 842 0526 DF92      		push r13
- 843 0528 CF92      		push r12
- 844 052a 00D0      		rcall sprintf
- 845               	.LVL45:
+ 782               		.loc 1 130 0 is_stmt 1
+ 783 04ac 38E0      		ldi r19,lo8(8)
+ 784 04ae B39E      		mul r11,r19
+ 785 04b0 F001      		movw r30,r0
+ 786 04b2 1124      		clr __zero_reg__
+ 787 04b4 E050      		subi r30,lo8(-(sensor_id))
+ 788 04b6 F040      		sbci r31,hi8(-(sensor_id))
+ 789 04b8 8781      		ldd r24,Z+7
+ 790 04ba 1F92      		push __zero_reg__
+ 791 04bc 8F93      		push r24
+ 792 04be 8681      		ldd r24,Z+6
+ 793 04c0 1F92      		push __zero_reg__
+ 794 04c2 8F93      		push r24
+ 795 04c4 8581      		ldd r24,Z+5
+ 796 04c6 1F92      		push __zero_reg__
+ 797 04c8 8F93      		push r24
+ 798 04ca 8481      		ldd r24,Z+4
+ 799 04cc 1F92      		push __zero_reg__
+ 800 04ce 8F93      		push r24
+ 801 04d0 8381      		ldd r24,Z+3
+ 802 04d2 1F92      		push __zero_reg__
+ 803 04d4 8F93      		push r24
+ 804 04d6 8281      		ldd r24,Z+2
+ 805 04d8 1F92      		push __zero_reg__
+ 806 04da 8F93      		push r24
+ 807 04dc 8181      		ldd r24,Z+1
+ 808 04de 1F92      		push __zero_reg__
+ 809 04e0 8F93      		push r24
+ 810 04e2 8081      		ld r24,Z
+ 811 04e4 1F92      		push __zero_reg__
+ 812 04e6 8F93      		push r24
+ 813 04e8 FF92      		push r15
+ 814 04ea EF92      		push r14
+ 815 04ec DF92      		push r13
+ 816 04ee CF92      		push r12
+ 817 04f0 00D0      		rcall sprintf
+ 818               	.LVL43:
  132:main.c        **** 					for (j = 0; msg_buffer[j] != ':'; j++)
- 846               		.loc 1 132 0
- 847 052c 0FB6      		in __tmp_reg__,__SREG__
- 848 052e F894      		cli
- 849 0530 DEBF      		out __SP_H__,r29
- 850 0532 0FBE      		out __SREG__,__tmp_reg__
- 851 0534 CDBF      		out __SP_L__,r28
- 852 0536 80E0      		ldi r24,0
- 853               	.LVL46:
- 854               	.L23:
+ 819               		.loc 1 132 0
+ 820 04f2 0FB6      		in __tmp_reg__,__SREG__
+ 821 04f4 F894      		cli
+ 822 04f6 DEBF      		out __SP_H__,r29
+ 823 04f8 0FBE      		out __SREG__,__tmp_reg__
+ 824 04fa CDBF      		out __SP_L__,r28
+ 825 04fc 80E0      		ldi r24,0
+ 826               	.LVL44:
+ 827               	.L23:
  132:main.c        **** 					for (j = 0; msg_buffer[j] != ':'; j++)
- 855               		.loc 1 132 0 is_stmt 0 discriminator 1
- 856 0538 E1E0      		ldi r30,lo8(1)
- 857 053a F0E0      		ldi r31,0
- 858 053c EC0F      		add r30,r28
- 859 053e FD1F      		adc r31,r29
- 860 0540 E80F      		add r30,r24
- 861 0542 F11D      		adc r31,__zero_reg__
- 862 0544 9081      		ld r25,Z
- 863 0546 21E0      		ldi r18,lo8(1)
- 864 0548 280F      		add r18,r24
- 865 054a 9A33      		cpi r25,lo8(58)
- 866 054c 01F4      		brne .+2
- 867 054e 00C0      		rjmp .L46
+ 828               		.loc 1 132 0 is_stmt 0 discriminator 1
+ 829 04fe E1E0      		ldi r30,lo8(1)
+ 830 0500 F0E0      		ldi r31,0
+ 831 0502 EC0F      		add r30,r28
+ 832 0504 FD1F      		adc r31,r29
+ 833 0506 E80F      		add r30,r24
+ 834 0508 F11D      		adc r31,__zero_reg__
+ 835 050a 9081      		ld r25,Z
+ 836 050c 21E0      		ldi r18,lo8(1)
+ 837 050e 280F      		add r18,r24
+ 838 0510 9A33      		cpi r25,lo8(58)
+ 839 0512 01F4      		brne .+2
+ 840 0514 00C0      		rjmp .L46
  132:main.c        **** 					for (j = 0; msg_buffer[j] != ':'; j++)
- 868               		.loc 1 132 0 discriminator 2
- 869 0550 822F      		mov r24,r18
- 870               	.LVL47:
- 871 0552 00C0      		rjmp .L23
- 872               	.LVL48:
- 873               	.L27:
- 874 0554 0196      		adiw r24,1
- 875               	.LVL49:
- 876               		.loc 1 136 0 is_stmt 1 discriminator 1
- 877 0556 8731      		cpi r24,23
- 878 0558 9105      		cpc r25,__zero_reg__
- 879 055a 01F0      		breq .+2
- 880 055c 00C0      		rjmp .L25
- 881 055e 47E1      		ldi r20,lo8(23)
- 882 0560 00C0      		rjmp .L26
- 883               	.LVL50:
- 884               	.L31:
+ 841               		.loc 1 132 0 discriminator 2
+ 842 0516 822F      		mov r24,r18
+ 843               	.LVL45:
+ 844 0518 00C0      		rjmp .L23
+ 845               	.LVL46:
+ 846               	.L27:
+ 847 051a 0196      		adiw r24,1
+ 848               	.LVL47:
+ 849               		.loc 1 136 0 is_stmt 1 discriminator 1
+ 850 051c 8731      		cpi r24,23
+ 851 051e 9105      		cpc r25,__zero_reg__
+ 852 0520 01F0      		breq .+2
+ 853 0522 00C0      		rjmp .L25
+ 854 0524 47E1      		ldi r20,lo8(23)
+ 855 0526 00C0      		rjmp .L26
+ 856               	.LVL48:
+ 857               	.L31:
  137:main.c        **** 						;
  138:main.c        **** 
  139:main.c        **** 				}
  140:main.c        **** 
  141:main.c        **** 				if (k == IDSTR_LEN) esp_sendf("%i", temp[i - 1]);
- 885               		.loc 1 141 0
- 886 0562 EB2D      		mov r30,r11
- 887 0564 F0E0      		ldi r31,0
- 888 0566 EE0F      		lsl r30
- 889 0568 FF1F      		rol r31
- 890 056a E050      		subi r30,lo8(-(temp-2))
- 891 056c F040      		sbci r31,hi8(-(temp-2))
- 892 056e 8181      		ldd r24,Z+1
- 893 0570 8F93      		push r24
- 894 0572 8081      		ld r24,Z
- 895 0574 8F93      		push r24
- 896 0576 80E0      		ldi r24,lo8(.LC16)
- 897 0578 90E0      		ldi r25,hi8(.LC16)
- 898 057a 9F93      		push r25
- 899 057c 8F93      		push r24
- 900 057e 00D0      		rcall esp_sendf
- 901               	.LVL51:
- 902 0580 0F90      		pop __tmp_reg__
- 903 0582 0F90      		pop __tmp_reg__
- 904 0584 0F90      		pop __tmp_reg__
- 905 0586 0F90      		pop __tmp_reg__
- 906 0588 00C0      		rjmp .L32
- 907               	.LVL52:
- 908               	.L28:
- 909 058a 4731      		cpi r20,lo8(23)
- 910 058c 01F0      		breq .L31
+ 858               		.loc 1 141 0
+ 859 0528 EB2D      		mov r30,r11
+ 860 052a F0E0      		ldi r31,0
+ 861 052c EE0F      		lsl r30
+ 862 052e FF1F      		rol r31
+ 863 0530 E050      		subi r30,lo8(-(temp-2))
+ 864 0532 F040      		sbci r31,hi8(-(temp-2))
+ 865 0534 8181      		ldd r24,Z+1
+ 866 0536 8F93      		push r24
+ 867 0538 8081      		ld r24,Z
+ 868 053a 8F93      		push r24
+ 869 053c 80E0      		ldi r24,lo8(.LC15)
+ 870 053e 90E0      		ldi r25,hi8(.LC15)
+ 871 0540 9F93      		push r25
+ 872 0542 8F93      		push r24
+ 873 0544 00D0      		rcall esp_sendf
+ 874               	.LVL49:
+ 875 0546 0F90      		pop __tmp_reg__
+ 876 0548 0F90      		pop __tmp_reg__
+ 877 054a 0F90      		pop __tmp_reg__
+ 878 054c 0F90      		pop __tmp_reg__
+ 879 054e 00C0      		rjmp .L32
+ 880               	.LVL50:
+ 881               	.L28:
+ 882 0550 4731      		cpi r20,lo8(23)
+ 883 0552 01F0      		breq .L31
  142:main.c        **** 				else esp_sendf("Err: id not found");
- 911               		.loc 1 142 0
- 912 058e 80E0      		ldi r24,lo8(.LC17)
- 913 0590 90E0      		ldi r25,hi8(.LC17)
- 914               	.LVL53:
- 915               	.L40:
- 916 0592 9F93      		push r25
- 917 0594 8F93      		push r24
- 918 0596 00D0      		rcall esp_sendf
- 919               	.LVL54:
- 920 0598 0F90      		pop __tmp_reg__
- 921 059a 0F90      		pop __tmp_reg__
- 922 059c 00C0      		rjmp .L32
- 923               	.LBE26:
- 924               	.LBE29:
- 925               		.cfi_endproc
- 926               	.LFE9:
- 928               		.local	temp
- 929               		.comm	temp,6,1
- 930               		.local	nfound
- 931               		.comm	nfound,1,1
- 932               		.local	sensor_id
- 933               		.comm	sensor_id,24,1
- 934               		.text
- 935               	.Letext0:
- 936               		.file 3 "/usr/lib/avr/include/stdint.h"
- 937               		.file 4 "ds1820/onewire.h"
- 938               		.file 5 "esp/esp.h"
- 939               		.file 6 "lcd/hd44780.h"
- 940               		.file 7 "ds1820/ds18x20.h"
- 941               		.file 8 "/usr/lib/avr/include/stdio.h"
- 942               		.file 9 "/usr/lib/avr/include/string.h"
- 943               		.file 10 "uart/uart.h"
+ 884               		.loc 1 142 0
+ 885 0554 80E0      		ldi r24,lo8(.LC16)
+ 886 0556 90E0      		ldi r25,hi8(.LC16)
+ 887               	.LVL51:
+ 888               	.L40:
+ 889 0558 9F93      		push r25
+ 890 055a 8F93      		push r24
+ 891 055c 00D0      		rcall esp_sendf
+ 892               	.LVL52:
+ 893 055e 0F90      		pop __tmp_reg__
+ 894 0560 0F90      		pop __tmp_reg__
+ 895 0562 00C0      		rjmp .L32
+ 896               	.LBE27:
+ 897               	.LBE30:
+ 898               		.cfi_endproc
+ 899               	.LFE9:
+ 901               		.local	temp
+ 902               		.comm	temp,6,1
+ 903               		.local	nfound
+ 904               		.comm	nfound,1,1
+ 905               		.local	sensor_id
+ 906               		.comm	sensor_id,24,1
+ 907               		.text
+ 908               	.Letext0:
+ 909               		.file 3 "/usr/lib/avr/include/stdint.h"
+ 910               		.file 4 "ds1820/onewire.h"
+ 911               		.file 5 "esp/esp.h"
+ 912               		.file 6 "lcd/hd44780.h"
+ 913               		.file 7 "ds1820/ds18x20.h"
+ 914               		.file 8 "/usr/lib/avr/include/stdio.h"
+ 915               		.file 9 "/usr/lib/avr/include/string.h"
+ 916               		.file 10 "uart/uart.h"
 DEFINED SYMBOLS
                             *ABS*:0000000000000000 main.c
-     /tmp/cc02RmPb.s:2      *ABS*:000000000000003e __SP_H__
-     /tmp/cc02RmPb.s:3      *ABS*:000000000000003d __SP_L__
-     /tmp/cc02RmPb.s:4      *ABS*:000000000000003f __SREG__
-     /tmp/cc02RmPb.s:5      *ABS*:0000000000000000 __tmp_reg__
-     /tmp/cc02RmPb.s:6      *ABS*:0000000000000001 __zero_reg__
-     /tmp/cc02RmPb.s:12     .text:0000000000000000 cmp_cmd_of_msg
-     /tmp/cc02RmPb.s:69     .text.startup:0000000000000000 main
-     /tmp/cc02RmPb.s:929    .bss:0000000000000006 nfound
-     /tmp/cc02RmPb.s:931    .bss:0000000000000007 sensor_id
+     /tmp/ccSgoMJd.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccSgoMJd.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccSgoMJd.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccSgoMJd.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccSgoMJd.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccSgoMJd.s:12     .text:0000000000000000 cmp_cmd_of_msg
+     /tmp/ccSgoMJd.s:67     .text.startup:0000000000000000 main
+     /tmp/ccSgoMJd.s:902    .bss:0000000000000006 nfound
+     /tmp/ccSgoMJd.s:904    .bss:0000000000000007 sensor_id
                              .bss:0000000000000000 temp
 
 UNDEFINED SYMBOLS

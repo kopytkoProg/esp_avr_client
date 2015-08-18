@@ -60,7 +60,7 @@ static void update_temp(void) {
 		lcd_goto(0x40);
 		lcd_putsf("t3:%d,%d", temp[2] / 10, temp[2] % 10);
 	}
-	esp_debugf("t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
+	// esp_debugf("t1: %d, t2: %d, t3: %d", temp[0], temp[1], temp[2]);
 	DS18X20_start_meas( DS18X20_POWER_EXTERN, NULL);
 
 }
